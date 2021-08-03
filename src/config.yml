@@ -1,0 +1,49 @@
+# Node Config
+node_id: "testnode_balena"
+digit_accuracy: 2      # To how many decimal digits should the sensor values be rounded
+
+# Logging Config
+enable_raw_log: True   # Log sensor data every second
+enable_avg_log: True   # Log sensor data every minute
+# There has to be a Folder called log_data on the USB Drive
+logging_directory: "/mnt/storage/log_data/" # DONT CHANGE THIS without changing logging controller!
+
+# Hardware Config
+heater_pin: 12
+heater_enable: True
+heater_debug: False  # Enable heater debug messages
+heater_pid_enable: True  # Enable PID controllers if True, use 2 point controller if False
+
+sht_heater_enable: True # The SHT30 has an internal heater to remove condensation
+
+oled_enable: True
+oled_raw: False # display raw data every second if true or use average data every minute if false
+
+# Gas sensor calibration settings
+adc_address_a: 0x48
+adc_address_b: 0x48
+
+cali_co: { w0: 344, a0: 352, sens: 0.412, offset: 0 }
+cali_no: { w0: 291, a0: 289, sens: 0.578, offset: 0 }
+cali_no2: { w0: 230, a0: 223, sens: 0.395, offset: 70 }
+cali_o3: { w0: 253, a0: 252, sens: 0.308, offset: 0 }
+
+# MQTT Config
+mqtt_base_topic: "airdata"
+mqtt_qos: 2
+
+#mqtt_server: "t2"
+#mqtt_port: 1883
+#mqtt_use_tls: false
+
+#mqtt_server: "b173c434da314b1a933ddf459d089a4a.s1.eu.hivemq.cloud"
+#mqtt_port: 8883
+#mqtt_use_tls: true
+#mqtt_user: "***REMOVED***"
+#mqtt_pass: ">DL*8DX?a5.-3.AU"
+
+mqtt_server: "aang.ddnss.de"
+mqtt_port: 1883
+mqtt_use_tls: false
+mqtt_user: "***REMOVED***"
+mqtt_pass: "***REMOVED***"

@@ -1,0 +1,47 @@
+# base-image for python on any machine using a template variable,
+# see more about dockerfile templates here: https://www.balena.io/docs/learn/develop/dockerfile/
+FROM balenalib/%%BALENA_MACHINE_NAME%%-python:3-stretch-run
+
+# use `install_packages` if you need to install dependencies,
+# for instance if you need git, just uncomment the line below.
+RUN install_packages build-essential gcc linux-libc-dev libmm-glib-dev dbus pkg-config
+RUN install_packages libdbus-glib-1-dev libgirepository1.0-dev git libusb-1.0-0-dev
+RUN install_packages util-linux grep libdbus-1-dev net-tools curl modemmanager udisks2
+RUN pip install --upgrade pip
+# RUN apt-get update
+# RUN pip install smbus2
+# RUN pip install spidev
+
+RUN apt-get update && apt-get install -yq --no-install-recommends \
+    build-essential pkg-config libdbus-1-dev libdbus-glib-1-dev \
+    net-tools curl modemmanager logrotate watchdog && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/mvp/uhubctl && cd uhubctl && make && make install && rm -r uhubctl
+
+# Automount stuff
+COPY udev/usb.rules /etc/udev/rules.d/usb.rules
+COPY scripts /usr/src/scripts
+RUN chmod +x /usr/src/scripts/*
+
+# Set our working directory
+WORKDIR /usr/src/app
+
+# Copy requirements.txt first for better cache on later pushes
+COPY ./src/requirements.txt requirements.txt
+
+# pip install python deps from requirements.txt on the resin.io build server
+RUN pip install -r requirements.txt
+
+# This will copy all files in our root to the working  directory in the container
+COPY ./src ./
+
+# Enable udevd so that plugged dynamic hardware devices show up in our container.
+ENV UDEV=1
+
+# for balena supervisor versions 1.7.0 and newer (both balenaOS 1.x and 2.x) use this version:
+ENV DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket
+
+# main.py will run when container starts up on the device
+#CMD ["python","-u","main.py"]
+CMD ["bash", "/usr/src/scripts/start.sh"]

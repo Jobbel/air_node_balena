@@ -1,0 +1,12 @@
+PyYAML
+APScheduler
+psutil
+paho-mqtt
+Adafruit-ADS1x15
+Adafruit-SHT31
+luma.oled
+Pillow
+SMBus
+RPi.GPIO
+simple-pid
+requests
