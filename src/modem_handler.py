@@ -1,7 +1,8 @@
 import time
-from subprocess import STDOUT, check_output, TimeoutExpired
+from subprocess import STDOUT, check_output
 import threading
 import prt
+import os
 
 
 class ModemHandler(object):
@@ -10,6 +11,8 @@ class ModemHandler(object):
         self.gps_timestamp = "unknown"
         self.current_gps_data = {"lat": 0, "lon": 0, "alt": 0, "rssi": 0}
         self.modem_num = -1
+        self.fail_count = 0
+        self.modem_restart_count = 0
 
         self.t = threading.Thread(target=self.modemPoller)
         self.t.setDaemon(True)
@@ -25,49 +28,71 @@ class ModemHandler(object):
         return self.modem_num
 
     def modemPoller(self):
+        time.sleep(20)
+        print("Started GPS polling thread")
         while True:
             ret = {"lat": 0, "lon": 0, "alt": 0, "rssi": 0}
             self.updateModemNumber()
-            if self.modem_num is not -1:
-                if self.enableGPS() is True:
-                    ret.update(self.getGPSLocation())
-                    ret["rssi"] = self.getRSSI()
-                else:
-                    prt.global_entity.printOnce("Failed to enable location gathering", "Error stopped occuring: Failed to enable location gathering")
+            time.sleep(1)  # Without these qmicli times out
+            if self.modem_num != -1:
+                ret.update(self.getGPSLocation())
+                time.sleep(1)  # Without these qmicli times out
+                ret["rssi"] = self.getRSSI()
             else:
-                prt.global_entity.printOnce("GPS disconnected", "GPS back online")
+                self.fail_count += 1
+                prt.global_entity.printOnce("GPS disconnected", "GPS back online", 10)
 
             self.current_gps_data = ret
-            time.sleep(1)
+
+            # reset fail count if we get good data from the modem
+            if ret["rssi"] != 0 and ret["lat"] != 0 and ret["lon"] != 0:
+                self.fail_count = 0
+
+            # After 10 fails to fetch the modem number we reset the modem
+            if self.fail_count > 100:
+                print(f"failed to fetch GPS data more than 100 times, restarting Modem for the: {self.modem_restart_count} time since service start")
+                self.fail_count = 0
+                self.restartModem()
+
+            time.sleep(3)
+
+    def restartModem(self):
+        self.modem_restart_count += 1
+        os.system("umount -l /mnt/storage")  # Unmount usb drive first to avoid memory corruption
+        os.system("rmdir /mnt/storage")  # remove this if usb hub method works
+        os.system("uhubctl -l 1-1 -a 0  > /dev/null")
+        time.sleep(5)
+        os.system("uhubctl -l 1-1 -a 1  > /dev/null")
+        time.sleep(20)
 
     def updateModemNumber(self):
         cmd = "mmcli -L | grep Modem | sed -e 's/\//\ /g' | awk '{print $5}'"
         try:
-            ret = check_output(cmd, shell=True, stderr=STDOUT, timeout=0.1).decode("utf-8").strip()
-            if ret is not "" and ret.isdigit():
+            ret = check_output(cmd, shell=True, stderr=STDOUT, timeout=1).decode("utf-8").strip()
+            if ret != "" and ret.isdigit():
                 self.modem_num = int(ret)
             else:
                 self.modem_num = -1
         except:
-            prt.global_entity.printOnce("Getting modem number failed", "Error stopped occuring: Getting modem number failed")
             self.modem_num = -1
 
     def enableGPS(self):
-        cmd = "mmcli -m " + str(self.modem_num) + " --location-enable-gps-raw"
+        cmd = "mmcli -m " + str(self.modem_num) + " --command=AT+CGPS=1,1"
         try:
-            ret = check_output(cmd, shell=True, stderr=STDOUT, timeout=0.1).decode("utf-8")
-            return "successfully setup location gathering" in ret
+            ret = check_output(cmd, shell=True, stderr=STDOUT, timeout=1).decode("utf-8")
+            return """response: ''""" in ret
         except:
-            prt.global_entity.printOnce("Enabling GPS failed", "Error stopped occuring: Enabling GPS failed")
             return False
 
     def getGPSLocation(self):
         ret = {"lat": 0, "lon": 0, "alt": 0}
         cmd = "mmcli -m " + str(self.modem_num) + " --command=AT+CGPSINFO"
         try:
-            nmea_data = check_output(cmd, shell=True, stderr=STDOUT, timeout=0.1).decode("utf-8").strip().split("'")[1]
+            nmea_data = check_output(cmd, shell=True, stderr=STDOUT, timeout=1).decode("utf-8").strip().split("'")[1]
             if ",,,,,,,," in nmea_data:
-                prt.global_entity.printOnce("no GPS fix", "Error stopped occuring: no GPS fix")
+                if not self.enableGPS():
+                    prt.global_entity.printOnce("no GPS fix", "Error stopped occuring: no GPS fix", 10)
+                self.gps_timestamp = "unknown"
             elif "CGPSINFO" in nmea_data:
                 # Format: [lat],[N/S],[log],[E/W],[date],[UTC time],[alt],[speed],[course]
                 nmea_data = nmea_data[11:].split(',')  # remove CGPSINFO from the beginning
@@ -81,16 +106,18 @@ class ModemHandler(object):
             else:
                 raise ValueError
         except:
-            prt.global_entity.printOnce("Failed to get GPS data", "Error stopped occuring: Failed to get GPS data")
+            self.gps_timestamp = "unknown"
+            prt.global_entity.printOnce("Failed to get GPS data", "Error stopped occuring: Failed to get GPS data", 10)
         return ret
 
     def getRSSI(self):
         cmd = "mmcli -m " + str(self.modem_num) + " --command=AT+CSQ"
         try:
-            ret = check_output(cmd, shell=True, stderr=STDOUT, timeout=0.1).decode("utf-8")
+            ret = check_output(cmd, shell=True, stderr=STDOUT, timeout=1).decode("utf-8")
             return self.convertSSToRSSI(ret.strip().split("response: '+CSQ: ")[1].split(",")[0])
         except:
-            prt.global_entity.printOnce("Failed to get signal strength data", "Error stopped occuring: Failed to get signal strength data")
+            prt.global_entity.printOnce("Failed to get signal strength data",
+                                        "Error stopped occuring: Failed to get signal strength data", 10)
             return 0
 
     def convertSSToRSSI(self, ss):

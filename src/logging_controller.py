@@ -63,6 +63,15 @@ def getTimeSinceLastWrite(path):
     last_written_timestamp = float(line.decode("utf-8").split(",")[-3])
     return time.time() - last_written_timestamp
 
+def resetLoggers():
+    global raw_logger, avg_logger
+    if raw_logger is not None:
+        raw_logger.handlers.pop()
+        raw_logger = None
+    if avg_logger is not None:
+        avg_logger.handlers.pop()
+        avg_logger = None
+
 
 def logDataTo(logger_selector, data):
     global raw_logger, avg_logger
@@ -71,29 +80,32 @@ def logDataTo(logger_selector, data):
     if os.path.exists(config['logging_directory']) is False:
         prt.global_entity.printOnce("No USB Drive detected, not logging any data",
                                     "USB Drive detected, restarted logging")
-        if raw_logger is not None:
-            raw_logger.handlers.pop()
-            raw_logger = None
-        if avg_logger is not None:
-            avg_logger.handlers.pop()
-            avg_logger = None
+        resetLoggers()
     else:
         try:
-            if logger_selector is "raw":
+            if logger_selector == "raw":
                 file = config['logging_directory'] + config['node_id'] + "_raw_every_second_data.log"
                 if raw_logger is None:
                     print("Trying to generate raw logger")
                     raw_logger = setupMidnightlogger('raw_logger', file, generateCSVHeaderFromList(list(data.keys())))
                 raw_logger.info(dictToCSV(data))
                 if getTimeSinceLastWrite(file) > 0.5:
-                    print("last raw logger entry is too old, check usb drive")
-            elif logger_selector is "avg":
+                    print("last raw logger entry is too old, checking usb drive")
+                    raise OSError
+                else:
+                    prt.global_entity.printOnce("Raw logger started","Raw logger stopped working")
+            elif logger_selector == "avg":
                 file = config['logging_directory'] + config['node_id'] + "_avg_every_minute_data.log"
                 if avg_logger is None:
                     print("Trying to generate avg logger")
                     avg_logger = setupMidnightlogger('avg_logger', file, generateCSVHeaderFromList(list(data.keys())))
                 avg_logger.info(dictToCSV(data))
                 if getTimeSinceLastWrite(file) > 0.5:
-                    print("last avg logger entry is too old, check usb drive")
+                    print("last avg logger entry is too old, checking usb drive")
+                    raise OSError
+                else:
+                    prt.global_entity.printOnce("Avg logger started", "Avg logger stopped working", 65)
         except:
-            print(f"Failed to generate {logger_selector} logger, check usb drive")
+            print(f"Failed to generate {logger_selector} logger, checking usb drive")
+            resetLoggers()
+            os.system("fsck -y /dev/sda1  > /dev/null")
