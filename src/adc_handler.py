@@ -23,6 +23,7 @@ class ADCHandler(object):
 
     def rawADCtoPPB(self, w_raw, a_raw, cali, n):
         """uses raw working and auxiliary adc values as well as a calibration dict to calculate ppb values"""
+        n = 1
         w = w_raw * self.mVGain
         a = a_raw * self.mVGain
         return ((w - cali['w0']) - (n * (a - cali['a0']))) / cali['sens']

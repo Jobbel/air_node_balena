@@ -30,6 +30,9 @@ class MQTTController(object):
 
         self.client.loop_start()  # Start MQTT handling in a new thread
 
+    def getConnected(self):
+        return self.mqtt_connected
+
     def onConnect(self, client, userdata, flags, rc):
         print("Connected to MQTT Broker:", self._config['mqtt_server'], "at port:", self._config['mqtt_port'])
         self.mqtt_connected = True

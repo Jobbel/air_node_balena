@@ -63,7 +63,7 @@ def getDiskUsage():
 
 
 def getTotalDataUsage():
-    for device in ['wwan0', 'wwp1s0u1u3i5', 'wwp1s0u1u4i5']:
+    for device in ['wwan0', 'wwp1s0u1u3i5', 'wwp1s0u1u4i5', 'ppp0']:
         try:
             netio = psutil.net_io_counters(pernic=True)
             net_usage = netio[device].bytes_sent + netio[device].bytes_recv
@@ -156,7 +156,7 @@ def everySecond():
     if config['heater_enable'] is True:
         heat.updateHeating(raw_data)
     if config['oled_enable'] is True and config['oled_raw'] is True:
-        oled.updateView(raw_data)
+        oled.updateView(raw_data, mqtt.getConnected(), modem.getMMNumber())
     if config['enable_raw_log'] is True:
         logging_controller.logDataTo("raw", appendTimestampsTo(raw_data))
 
@@ -165,7 +165,7 @@ def everyMinute():
     avg_data = calculateMeanData(minute_data)
     minute_data.clear()
     if config['oled_enable'] is True and config['oled_raw'] is False:
-        oled.updateView(avg_data)
+        oled.updateView(avg_data, mqtt.getConnected(), modem.getMMNumber())
     if config['enable_avg_log'] is True:
         logging_controller.logDataTo("avg", appendTimestampsTo(avg_data))
     mqtt.publishData(generatePublishingMessage(avg_data))
