@@ -3,6 +3,7 @@ import prt
 from simple_pid import PID
 import config
 
+
 class HeatingController(object):
     def __init__(self):
         self.heater_power = 0
@@ -13,11 +14,13 @@ class HeatingController(object):
         self.p = self.GPIO.PWM(config.HEATER_PIN, 50)
         self.p.start(0)
         # Humidity PID is reversed, heating -> humidity drops
-        self.pid_h = PID(-20, -0.02, -0, setpoint=50, sample_time=None)
+        self.pid_h = PID(-20, -0.02, -0, setpoint=config.HEATER_PID_HUMID_SETPOINT, sample_time=None)
         self.pid_h.output_limits = (0, 100)
+        self.pid_h.tunings = config.HEATER_PID_TEMP_TUNING
         # Temperature PID is normal, heating -> temperature rises
-        self.pid_t = PID(20, 0.02, 0, setpoint=15, sample_time=None)
+        self.pid_t = PID(20, 0.02, 0, setpoint=config.HEATER_PID_TEMP_SETPOINT, sample_time=None)
         self.pid_t.output_limits = (0, 100)
+        self.pid_t.tunings = config.HEATER_PID_TEMP_TUNING
 
     def updateHeating(self, data):
         try:
@@ -45,7 +48,7 @@ class HeatingController(object):
                 self.heater_power = 0
         else:
             # Humidity PID
-            if inside_humidity > 45:
+            if inside_humidity > config.HEATER_PID_HUMID_SETPOINT - 5:  # start pid if we get within 5%H of the setpoint
                 self.pid_h.auto_mode = True
                 pid_h_out = round(self.pid_h(inside_humidity), 2)
                 if config.HEATER_DEBUG:
@@ -54,7 +57,7 @@ class HeatingController(object):
                 self.pid_h.auto_mode = False
                 pid_h_out = 0
             # Temperature PID
-            if inside_temperature < 20:
+            if inside_temperature < config.HEATER_PID_TEMP_SETPOINT + 5:  # start pid if we get within 5°C of the setpoint
                 self.pid_t.auto_mode = True
                 pid_t_out = round(self.pid_t(inside_temperature), 2)
                 if config.HEATER_DEBUG:

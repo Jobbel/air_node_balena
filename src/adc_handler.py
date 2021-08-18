@@ -5,7 +5,6 @@ from generic_sensor import SensorBase
 
 
 class ADCHandler(SensorBase):
-
     def __init__(self):
         self.adc = Adafruit_ADS1x15.ADS1115(address=config.ADC_ADDRESS_A)
         self.ADCGain = 4

@@ -44,7 +44,6 @@ try:
 except:
     print("Sensor startup failed!")
 
-
 def getCPUTemp():
     temp_file = open('/sys/class/thermal/thermal_zone0/temp')
     return round(float(temp_file.read()) / 1000, 2)
