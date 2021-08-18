@@ -1,8 +1,10 @@
 import Adafruit_ADS1x15
 import prt
 import config
+from generic_sensor import SensorBase
 
-class ADCHandler(object):
+
+class ADCHandler(SensorBase):
 
     def __init__(self):
         self.adc = Adafruit_ADS1x15.ADS1115(address=config.ADC_ADDRESS_A)
@@ -40,16 +42,16 @@ class ADCHandler(object):
                 values[i] = self.adc.read_adc(i, gain=self.ADCGain)
 
             # calculate gas values from raw adc values
-            ppbCO = self.rawADCtoPPB(0, 0, config.CALI_CO, n_co)
-            ppbNO = self.rawADCtoPPB(0, 0, config.CALI_NO, n_no)
-            ppbNO2 = self.rawADCtoPPB(values[0], values[1], config.CALI_NO2, n_no2)
-            ppbO3 = self.rawADCtoPPB(values[2], values[3], config.CALI_O3, n_o3)
+            ppbCO = self.rawADCtoPPB(0, 0, config.ADC_CALI_CO, n_co)
+            ppbNO = self.rawADCtoPPB(0, 0, config.ADC_CALI_NO, n_no)
+            ppbNO2 = self.rawADCtoPPB(values[0], values[1], config.ADC_CALI_NO2, n_no2)
+            ppbO3 = self.rawADCtoPPB(values[2], values[3], config.ADC_CALI_O3, n_o3)
 
-            # apply zero offset and round to the desired accuracy
-            ppbCO = round(ppbCO + float(config.CALI_CO["offset"]), config.DIGIT_ACCURACY)
-            ppbNO = round(ppbNO + float(config.CALI_NO["offset"]), config.DIGIT_ACCURACY)
-            ppbNO2 = round(ppbNO2 + float(config.CALI_NO2["offset"]), config.DIGIT_ACCURACY)
-            ppbO3 = round(ppbO3 + float(config.CALI_O3["offset"]), config.DIGIT_ACCURACY)
+            # Apply two point calibration
+            ppbCO = self.calibrate(ppbCO, config.ADC_CALI_CO)
+            ppbNO = self.calibrate(ppbNO, config.ADC_CALI_NO)
+            ppbNO2 = self.calibrate(ppbNO2, config.ADC_CALI_NO2)
+            ppbO3 = self.calibrate(ppbO3, config.ADC_CALI_O3)
 
             return {"CO": ppbCO, "NO": ppbNO, "NO2": ppbNO2, "O3": ppbO3}
 

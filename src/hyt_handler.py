@@ -2,8 +2,9 @@ import time
 import prt
 import smbus
 import config
+from generic_sensor import SensorBase
 
-class HYTHandler(object):
+class HYTHandler(SensorBase):
     def __init__(self):
         self.delay = 50.0 / 1000.0  # 50-60 ms delay. Without delay, it doesn't work.
         self.bus = smbus.SMBus(1)  # use /dev/i2c1
@@ -18,6 +19,10 @@ class HYTHandler(object):
             # Mask the last two bits, shift 2 bits to the right
             temperature = round(165.0 / 16383.0 * ((reading[2] * 0x100 + (reading[3] & 0xFC)) >> 2) - 40,
                                 config.DIGIT_ACCURACY)
+
+            # Apply two point calibration
+            humidity = self.calibrate(humidity, config.HYT_CALI_HUMID)
+            temperature = self.calibrate(temperature, config.HYT_CALI_TEMP)
             return {"hyt_humid": humidity, "hyt_temp": temperature}
 
         except:

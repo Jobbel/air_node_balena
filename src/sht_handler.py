@@ -2,10 +2,11 @@ import time
 
 import prt
 from Adafruit_SHT31 import *
+from generic_sensor import SensorBase
 import config
 
 
-class SHTHandler(object):
+class SHTHandler(SensorBase):
     def __init__(self):
         self.sensor = SHT31(address=config.SHT_ADDRESS)
         self.counter = 0
@@ -28,7 +29,12 @@ class SHTHandler(object):
                 time.sleep(0.01)  # If we dont wait here, i2c fails for some reason
 
             (temp, humid) = self.sensor.read_temperature_humidity()
-            return {"sht_humid": round(humid, config.DIGIT_ACCURACY), "sht_temp": round(temp, config.DIGIT_ACCURACY)}
+
+            # Apply two point calibration
+            humid = self.calibrate(humid, config.SHT_CALI_HUMID)
+            temp = self.calibrate(temp, config.SHT_CALI_TEMP)
+
+            return {"sht_humid": humid, "sht_temp": temp}
 
         except:
             prt.global_entity.printOnce("SHT disconnected", "SHT back online")

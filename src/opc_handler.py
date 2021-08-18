@@ -4,9 +4,10 @@ import prt
 import pyopcn3
 import spidev
 import config
+from generic_sensor import SensorBase
 
 
-class OPCHandler(object):
+class OPCHandler(SensorBase):
     def __init__(self):
         self.spi = spidev.SpiDev()
         self.spi.open(0, 0)
@@ -44,8 +45,9 @@ class OPCHandler(object):
                 ret['pm1'] = round(self.data['PM1'], config.DIGIT_ACCURACY)
                 ret['pm25'] = round(self.data['PM2.5'], config.DIGIT_ACCURACY)
                 ret['pm10'] = round(self.data['PM10'], config.DIGIT_ACCURACY)
-                ret['opc_humid'] = round(self.data['Relative humidity'], config.DIGIT_ACCURACY)
-                ret['opc_temp'] = round(self.data['Temperature'], config.DIGIT_ACCURACY)
+                # Apply two point calibration
+                ret['opc_humid'] = self.calibrate(self.data['Relative humidity'], config.OPC_CALI_HUMID)
+                ret['opc_temp'] = self.calibrate(self.data['Temperature'], config.OPC_CALI_TEMP)
             else:
                 self.connected = False
         else:

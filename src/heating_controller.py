@@ -23,8 +23,8 @@ class HeatingController(object):
         try:
             inside_humidity = data['opc_humid']
             inside_temperature = data['opc_temp']
-            outside_humidity = data['hyt_humid']
-            outside_temperature = data['hyt_temp']
+            # outside_humidity = data['hyt_humid']
+            # outside_temperature = data['hyt_temp']
             # if opc has a fault, dont heat
             if inside_temperature == 0.00 and inside_humidity == 0.00:
                 raise KeyError
