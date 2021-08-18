@@ -5,11 +5,8 @@ import os
 import time
 from logging.handlers import TimedRotatingFileHandler
 from subprocess import STDOUT, check_output
-
+import config
 import prt
-import yaml
-
-config = yaml.safe_load(open("config.yml"))
 
 formatter = logging.Formatter('%(message)s')
 logging.raiseExceptions = False
@@ -63,6 +60,7 @@ def getTimeSinceLastWrite(path):
     last_written_timestamp = float(line.decode("utf-8").split(",")[-3])
     return time.time() - last_written_timestamp
 
+
 def resetLoggers():
     global raw_logger, avg_logger
     if raw_logger is not None:
@@ -77,14 +75,14 @@ def logDataTo(logger_selector, data):
     global raw_logger, avg_logger
 
     # Check if USB Stick is correctly mounted, if not reset loggers
-    if os.path.exists(config['logging_directory']) is False:
+    if not os.path.exists(config.LOGGING_DIRECTORY):
         prt.global_entity.printOnce("No USB Drive detected, not logging any data",
                                     "USB Drive detected, restarted logging")
         resetLoggers()
     else:
         try:
             if logger_selector == "raw":
-                file = config['logging_directory'] + config['node_id'] + "_raw_every_second_data.log"
+                file = config.LOGGING_DIRECTORY + config.NODE_ID + "_raw_every_second_data.log"
                 if raw_logger is None:
                     print("Trying to generate raw logger")
                     raw_logger = setupMidnightlogger('raw_logger', file, generateCSVHeaderFromList(list(data.keys())))
@@ -93,9 +91,9 @@ def logDataTo(logger_selector, data):
                     print("last raw logger entry is too old, checking usb drive")
                     raise OSError
                 else:
-                    prt.global_entity.printOnce("Raw logger started","Raw logger stopped working")
+                    prt.global_entity.printOnce("Raw logger started", "Raw logger stopped working")
             elif logger_selector == "avg":
-                file = config['logging_directory'] + config['node_id'] + "_avg_every_minute_data.log"
+                file = config.LOGGING_DIRECTORY + config.NODE_ID + "_avg_every_minute_data.log"
                 if avg_logger is None:
                     print("Trying to generate avg logger")
                     avg_logger = setupMidnightlogger('avg_logger', file, generateCSVHeaderFromList(list(data.keys())))

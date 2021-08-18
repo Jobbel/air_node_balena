@@ -7,6 +7,7 @@ from luma.core.render import canvas
 from luma.core.virtual import viewport
 from luma.oled.device import ssd1306
 from PIL import Image
+import config
 
 
 class OLEDController(object):
@@ -16,7 +17,7 @@ class OLEDController(object):
             self.startup_phase = True
             self.list_entry_amount = 21
 
-            self.serial = i2c(port=6, address=0x3c)
+            self.serial = i2c(port=6, address=config.OLED_ADDRESS)
             self.device = ssd1306(self.serial, height=64, rotate=0)
             self.virtual = viewport(self.device, width=128, height=768)
 
@@ -64,7 +65,7 @@ class OLEDController(object):
         try:
             with canvas(self.virtual) as draw:
                 for i, line in enumerate(data_string.split("\n")):
-                    draw.text((0,(i * 12)), text=line, fill="white")
+                    draw.text((0, (i * 12)), text=line, fill="white")
             self.list_entry_amount = i  # We need this to know how far to scroll
             self.startup_phase = False
         except:

@@ -1,13 +1,11 @@
 import Adafruit_ADS1x15
 import prt
-
+import config
 
 class ADCHandler(object):
 
-    def __init__(self, config):
-        self._config = config
-        self._digit_accuracy = self._config["digit_accuracy"]
-        self.adc = Adafruit_ADS1x15.ADS1115(address=self._config["adc_address_a"])
+    def __init__(self):
+        self.adc = Adafruit_ADS1x15.ADS1115(address=config.ADC_ADDRESS_A)
         self.ADCGain = 4
         self.mVGain = 0.03125
 
@@ -42,16 +40,16 @@ class ADCHandler(object):
                 values[i] = self.adc.read_adc(i, gain=self.ADCGain)
 
             # calculate gas values from raw adc values
-            ppbCO = self.rawADCtoPPB(0, 0, self._config["cali_co"], n_co)
-            ppbNO = self.rawADCtoPPB(0, 0, self._config["cali_no"], n_no)
-            ppbNO2 = self.rawADCtoPPB(values[0], values[1], self._config["cali_no2"], n_no2)
-            ppbO3 = self.rawADCtoPPB(values[2], values[3], self._config["cali_o3"], n_o3)
+            ppbCO = self.rawADCtoPPB(0, 0, config.CALI_CO, n_co)
+            ppbNO = self.rawADCtoPPB(0, 0, config.CALI_NO, n_no)
+            ppbNO2 = self.rawADCtoPPB(values[0], values[1], config.CALI_NO2, n_no2)
+            ppbO3 = self.rawADCtoPPB(values[2], values[3], config.CALI_O3, n_o3)
 
             # apply zero offset and round to the desired accuracy
-            ppbCO = round(ppbCO + float(self._config["cali_co"]["offset"]), self._digit_accuracy)
-            ppbNO = round(ppbNO + float(self._config["cali_no"]["offset"]), self._digit_accuracy)
-            ppbNO2 = round(ppbNO2 + float(self._config["cali_no2"]["offset"]), self._digit_accuracy)
-            ppbO3 = round(ppbO3 + float(self._config["cali_o3"]["offset"]), self._digit_accuracy)
+            ppbCO = round(ppbCO + float(config.CALI_CO["offset"]), config.DIGIT_ACCURACY)
+            ppbNO = round(ppbNO + float(config.CALI_NO["offset"]), config.DIGIT_ACCURACY)
+            ppbNO2 = round(ppbNO2 + float(config.CALI_NO2["offset"]), config.DIGIT_ACCURACY)
+            ppbO3 = round(ppbO3 + float(config.CALI_O3["offset"]), config.DIGIT_ACCURACY)
 
             return {"CO": ppbCO, "NO": ppbNO, "NO2": ppbNO2, "O3": ppbO3}
 

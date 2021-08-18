@@ -1,18 +1,17 @@
 import threading
 import time
-
 import prt
 import pyopcn3
 import spidev
+import config
 
 
 class OPCHandler(object):
-    def __init__(self, digit_accuracy):
+    def __init__(self):
         self.spi = spidev.SpiDev()
         self.spi.open(0, 0)
         self.spi.mode = 1
         self.spi.max_speed_hz = 500000
-        self._digit_accuracy = digit_accuracy
         self.connected = False
 
         self.request_data = threading.Event()  # this event is used to request data from outside the thread
@@ -25,7 +24,7 @@ class OPCHandler(object):
 
     def runner(self):
         while True:
-            if self.connected is False:
+            if not self.connected:
                 self.alphasense = pyopcn3.OPCN3(self.spi)
                 self.alphasense.on()
                 time.sleep(1)
@@ -41,12 +40,12 @@ class OPCHandler(object):
         if self.connected:
             self.request_data.set()
             time.sleep(0.1)
-            if self.data is not None and self.request_data.is_set() is False:
-                ret['pm1'] = round(self.data['PM1'], self._digit_accuracy)
-                ret['pm25'] = round(self.data['PM2.5'], self._digit_accuracy)
-                ret['pm10'] = round(self.data['PM10'], self._digit_accuracy)
-                ret['opc_humid'] = round(self.data['Relative humidity'], self._digit_accuracy)
-                ret['opc_temp'] = round(self.data['Temperature'], self._digit_accuracy)
+            if self.data is not None and not self.request_data.is_set():
+                ret['pm1'] = round(self.data['PM1'], config.DIGIT_ACCURACY)
+                ret['pm25'] = round(self.data['PM2.5'], config.DIGIT_ACCURACY)
+                ret['pm10'] = round(self.data['PM10'], config.DIGIT_ACCURACY)
+                ret['opc_humid'] = round(self.data['Relative humidity'], config.DIGIT_ACCURACY)
+                ret['opc_temp'] = round(self.data['Temperature'], config.DIGIT_ACCURACY)
             else:
                 self.connected = False
         else:

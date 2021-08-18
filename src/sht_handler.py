@@ -2,13 +2,12 @@ import time
 
 import prt
 from Adafruit_SHT31 import *
+import config
 
 
 class SHTHandler(object):
-    def __init__(self, digit_accuracy, address=0x44, heating_enabled=True):
-        self.sensor = SHT31(address=address)
-        self._digit_accuracy = digit_accuracy
-        self._heating_enabled = heating_enabled
+    def __init__(self):
+        self.sensor = SHT31(address=config.SHT_ADDRESS)
         self.counter = 0
 
     def handleHeater(self):
@@ -24,12 +23,12 @@ class SHTHandler(object):
 
     def getData(self):
         try:
-            if self._heating_enabled is True:
+            if config.SHT_HEATER_ENABLE:
                 self.handleHeater()
                 time.sleep(0.01)  # If we dont wait here, i2c fails for some reason
 
             (temp, humid) = self.sensor.read_temperature_humidity()
-            return {"sht_humid": round(humid, self._digit_accuracy), "sht_temp": round(temp, self._digit_accuracy)}
+            return {"sht_humid": round(humid, config.DIGIT_ACCURACY), "sht_temp": round(temp, config.DIGIT_ACCURACY)}
 
         except:
             prt.global_entity.printOnce("SHT disconnected", "SHT back online")

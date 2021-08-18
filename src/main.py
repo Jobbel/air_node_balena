@@ -5,7 +5,6 @@ import time
 import logging_controller
 import prt
 import psutil
-import yaml
 from adc_handler import ADCHandler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from heating_controller import HeatingController
@@ -17,16 +16,15 @@ from prt import OncePrinter
 from requests import get
 from sht_handler import SHTHandler
 from oled_controller import OLEDController
+import config
 
 ### GLOBAL VARS ###
-config = yaml.safe_load(open("config.yml"))  # Load config file
-
 prt.global_entity = OncePrinter()  # This instantiates the OncePrinter used across all modules
-modem = ModemHandler()  # This establishes the internet connection that is why we do it first
-mqtt = MQTTController(config)  # This instantiates an mqtt object and tries to connect
-if config['heater_enable'] is True:
-    heat = HeatingController(config)
-if config['oled_enable'] is True:
+modem = ModemHandler()  # This reads gps and signal strength data from the modem periodically
+mqtt = MQTTController()  # This instantiates an mqtt object and tries to connect
+if config.HEATER_ENABLE:
+    heat = HeatingController()
+if config.OLED_ENABLE:
     oled = OLEDController()
 
 minute_data = []  # Container for storing and averaging sensor data
@@ -34,10 +32,14 @@ public_ip = "unknown"
 
 ### SENSOR INIT ###
 try:
-    opc = OPCHandler(config['digit_accuracy'])
-    sht = SHTHandler(config['digit_accuracy'], 0x44, config['sht_heater_enable'])
-    hyt = HYTHandler(config['digit_accuracy'], 0x28)
-    adc = ADCHandler(config)
+    if config.OPC_ENABLE:
+        opc = OPCHandler()
+    if config.SHT_ENABLE:
+        sht = SHTHandler()
+    if config.HYT_ENABLE:
+        hyt = HYTHandler()
+    if config.ADC_ENABLE:
+        adc = ADCHandler()
     print("Sensor startup successful")
 except:
     print("Sensor startup failed!")
@@ -86,13 +88,18 @@ def updatePublicIP():
 def getAllData():
     ret = {}
     # get sensors
-    ret.update(opc.getData())
-    ret.update(sht.getData())
-    ret.update(hyt.getData())
+    if config.OPC_ENABLE:
+        ret.update(opc.getData())
+    if config.SHT_ENABLE:
+        ret.update(sht.getData())
+    if config.HYT_ENABLE:
+        ret.update(hyt.getData())
     # we need the current temperature for the gas sensor formula
-    ret.update(adc.getData(ret))
+    if config.ADC_ENABLE:
+        ret.update(adc.getData(ret))
     # get telemetry
-    ret.update(heat.getData())
+    if config.HEATER_ENABLE:
+        ret.update(heat.getData())
     ret.update(modem.getData())
     return ret
 
@@ -102,11 +109,11 @@ def calculateMeanData(minute_data):
     for key in minute_data[0].keys():
         try:
             if key not in ["lat", "lon", "alt"]:  # latitude and longitude need a higher rounding accuracy
-                mean_dict[key] = round(sum(d[key] for d in minute_data) / len(minute_data), config['digit_accuracy'])
+                mean_dict[key] = round(sum(d[key] for d in minute_data) / len(minute_data), config.DIGIT_ACCURACY)
             else:
                 i_list = [d[key] for d in minute_data if d[key] != 0]  # intermediate list without 0s
                 if i_list:
-                    mean_dict[key] = round(sum(i_list) / len(i_list), (config['digit_accuracy'] if key == "alt" else 6))
+                    mean_dict[key] = round(sum(i_list) / len(i_list), (config.DIGIT_ACCURACY if key == "alt" else 6))
                 else:
                     # if there are only zeros in the list handle division by zero
                     mean_dict[key] = 0.0
@@ -131,7 +138,7 @@ def generatePublishingMessage(mean_data):
     alt_buffer = mean_data.pop("alt")
     rssi_buffer = mean_data.pop("rssi")
     # now there is only averaged sensor data in mean_data
-    ret = {"node_id": config['node_id'],
+    ret = {"node_id": config.NODE_ID,
            "data": mean_data,
            "tele": {
                "heater": heater_buffer,
@@ -153,20 +160,20 @@ def generatePublishingMessage(mean_data):
 def everySecond():
     raw_data = getAllData()
     minute_data.append(raw_data)
-    if config['heater_enable'] is True:
+    if config.HEATER_ENABLE:
         heat.updateHeating(raw_data)
-    if config['oled_enable'] is True and config['oled_raw'] is True:
+    if config.OLED_ENABLE and config.OLED_RAW:
         oled.updateView(raw_data, mqtt.getConnected(), modem.getMMNumber())
-    if config['enable_raw_log'] is True:
+    if config.ENABLE_RAW_LOG:
         logging_controller.logDataTo("raw", appendTimestampsTo(raw_data))
 
 
 def everyMinute():
     avg_data = calculateMeanData(minute_data)
     minute_data.clear()
-    if config['oled_enable'] is True and config['oled_raw'] is False:
+    if config.OLED_ENABLE and not config.OLED_RAW:
         oled.updateView(avg_data, mqtt.getConnected(), modem.getMMNumber())
-    if config['enable_avg_log'] is True:
+    if config.ENABLE_AVG_LOG:
         logging_controller.logDataTo("avg", appendTimestampsTo(avg_data))
     mqtt.publishData(generatePublishingMessage(avg_data))
 
@@ -192,11 +199,15 @@ except KeyboardInterrupt:
     print("Cleaning up")
     sched.shutdown()
     modem.stop()
-    if config['heater_enable'] is True:
+    if config.HEATER_ENABLE:
         heat.stop()
-    if config['oled_enable'] is True:
+    if config.OLED_ENABLE:
         oled.stop()
-    opc.stop()
-    sht.stop()
-    hyt.stop()
-    adc.stop()
+    if config.OPC_ENABLE:
+        opc.stop()
+    if config.SHT_ENABLE:
+        sht.stop()
+    if config.HYT_ENABLE:
+        hyt.stop()
+    if config.ADC_ENABLE:
+        adc.stop()
