@@ -6,7 +6,8 @@ from generic_sensor import SensorBase
 
 class ADCHandler(SensorBase):
     def __init__(self):
-        self.adc = Adafruit_ADS1x15.ADS1115(address=config.ADC_ADDRESS_A)
+        self.adc_a = Adafruit_ADS1x15.ADS1115(address=config.ADC_ADDRESS_A)
+        self.adc_b = Adafruit_ADS1x15.ADS1115(address=config.ADC_ADDRESS_B)
         self.ADCGain = 4
         self.mVGain = 0.03125
 
@@ -22,7 +23,6 @@ class ADCHandler(SensorBase):
 
     def rawADCtoPPB(self, w_raw, a_raw, cali, n):
         """uses raw working and auxiliary adc values as well as a calibration dict to calculate ppb values"""
-        n = 1
         w = w_raw * self.mVGain
         a = a_raw * self.mVGain
         return ((w - cali['w0']) - (n * (a - cali['a0']))) / cali['sens']
@@ -36,15 +36,17 @@ class ADCHandler(SensorBase):
         n_o3 = (0.77 if temp < 5 else (1.56 if temp < 35 else 2.85))
 
         try:
-            values = [0] * 4
+            values_adc_a = [0] * 4
+            values_adc_b = [0] * 4
             for i in range(4):
-                values[i] = self.adc.read_adc(i, gain=self.ADCGain)
+                values_adc_a[i] = self.adc_a.read_adc(i, gain=self.ADCGain)
+                values_adc_b[i] = self.adc_b.read_adc(i, gain=self.ADCGain)
 
             # calculate gas values from raw adc values
-            ppbCO = self.rawADCtoPPB(0, 0, config.ADC_CALI_CO, n_co)
-            ppbNO = self.rawADCtoPPB(0, 0, config.ADC_CALI_NO, n_no)
-            ppbNO2 = self.rawADCtoPPB(values[0], values[1], config.ADC_CALI_NO2, n_no2)
-            ppbO3 = self.rawADCtoPPB(values[2], values[3], config.ADC_CALI_O3, n_o3)
+            ppbCO = self.rawADCtoPPB(values_adc_a[1], values_adc_a[0], config.ADC_CALI_CO, n_co)
+            ppbNO = self.rawADCtoPPB(values_adc_a[3], values_adc_a[2], config.ADC_CALI_NO, n_no)
+            ppbNO2 = self.rawADCtoPPB(values_adc_b[1], values_adc_b[0], config.ADC_CALI_NO2, n_no2)
+            ppbO3 = self.rawADCtoPPB(values_adc_b[3], values_adc_b[2], config.ADC_CALI_O3, n_o3)
 
             # Apply two point calibration
             ppbCO = self.calibrate(ppbCO, config.ADC_CALI_CO)
@@ -59,4 +61,5 @@ class ADCHandler(SensorBase):
             return {"CO": 0, "NO": 0, "NO2": 0, "O3": 0}
 
     def stop(self):
-        self.adc.stop_adc()
+        self.adc_a.stop_adc()
+        self.adc_b.stop_adc()

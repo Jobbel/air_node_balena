@@ -58,7 +58,7 @@ HYT_CALI_HUMID = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 ADC_ENABLE = True # this requires SHT to be enabled
 
 ADC_ADDRESS_A = 0x48
-ADC_ADDRESS_B = 0x48
+ADC_ADDRESS_B = 0x49
 
 ADC_CALI_CO = {"w0": 344, "a0": 352, "sens": 0.412, "raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 ADC_CALI_NO = {"w0": 291, "a0": 289, "sens": 0.578, "raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}

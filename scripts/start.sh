@@ -5,9 +5,11 @@ export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/host/run/dbus/system_bus_socket"
 DEVNAME=/dev/sda1
 MOUNT_POINT=/mnt/storage
 ID_FS_TYPE=vfat
+UUID=${USB_STORAGE_UUID:-'CAA2-D115'}
+echo usb storage uuid load: $UUID
 
 mkdir -p /mnt/storage
-mount -t vfat -U CAA2-D115 -o rw /mnt/storage
+mount -t vfat -U $UUID -o rw /mnt/storage
 
 # Start main program
 python /usr/src/app/main.py &

@@ -68,5 +68,5 @@ try:
     ADC_CALI_NO2 = literal_eval(os.environ.get("ADC_CALI_NO2"))
     ADC_CALI_O3 = literal_eval(os.environ.get("ADC_CALI_O3"))
 except:
-    print("Failed to load cloud config from environment, using local backup config instead")
+    print("Failed to load cloud config from environment, using local config instead")
     from config_cloudless import *
