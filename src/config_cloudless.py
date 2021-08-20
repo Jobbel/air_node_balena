@@ -17,6 +17,9 @@ MQTT_USE_TLS = False
 MQTT_USER = "***REMOVED***"
 MQTT_PASS = "***REMOVED***"
 
+# GPS settings
+GPS_POLL_ENABLE = True
+
 # HARDWARE SETTINGS
 HEATER_PIN = 12
 HEATER_ENABLE = True  # This should only be enabled if an opc is used

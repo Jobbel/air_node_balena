@@ -20,6 +20,9 @@ try:
     MQTT_USER = os.environ['MQTT_USER']
     MQTT_PASS = os.environ['MQTT_PASS']
 
+    # GPS settings
+    GPS_POLL_ENABLE = os.environ['GPS_POLL_ENABLE'] in 'True'
+
     # HARDWARE SETTINGS
     HEATER_PIN = int(os.environ['HEATER_PIN'])
     HEATER_ENABLE = os.environ['HEATER_ENABLE'] in 'True'  # This should only be enabled if an opc is used

@@ -3,6 +3,7 @@ from subprocess import STDOUT, check_output
 import threading
 import prt
 import os
+import config
 
 
 class ModemHandler(object):
@@ -14,9 +15,10 @@ class ModemHandler(object):
         self.fail_count = 0
         self.modem_restart_count = 0
 
-        self.t = threading.Thread(target=self.modemPoller)
-        self.t.setDaemon(True)
-        self.t.start()
+        if config.GPS_POLL_ENABLE:
+            self.t = threading.Thread(target=self.modemPoller)
+            self.t.setDaemon(True)
+            self.t.start()
 
     def getData(self):
         return self.current_gps_data
@@ -50,7 +52,8 @@ class ModemHandler(object):
 
             # After 100 fails to fetch the modem number we reset the modem
             if self.fail_count > 100:
-                print(f"failed to fetch GPS data more than 100 times, restarting Modem for the: {self.modem_restart_count} time since service start")
+                print(
+                    f"failed to fetch GPS data more than 100 times, restarting Modem for the: {self.modem_restart_count} time since service start")
                 self.fail_count = 0
                 self.restartModem()
 
@@ -90,7 +93,7 @@ class ModemHandler(object):
         try:
             nmea_data = check_output(cmd, shell=True, stderr=STDOUT, timeout=1).decode("utf-8").strip().split("'")[1]
             if ",,,,,,,," in nmea_data:
-                #At this point we either have no fix or gps has not been enabled yet
+                # At this point we either have no fix or gps has not been enabled yet
                 if not self.enableGPS():
                     prt.global_entity.printOnce("no GPS fix", "Error stopped occuring: no GPS fix", 10)
                 self.gps_timestamp = "unknown"

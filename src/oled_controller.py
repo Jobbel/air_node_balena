@@ -13,30 +13,31 @@ import socket
 class OLEDController(object):
 
     def __init__(self):
-        try:
-            hostname = socket.gethostname()
-        except:
-            hostname = "unknown"
+        if config.OLED_ENABLE:
+            try:
+                hostname = socket.gethostname()
+            except:
+                hostname = "unknown"
 
-        try:
-            self.startup_phase = True
-            self.list_entry_amount = 19
+            try:
+                self.startup_phase = True
+                self.list_entry_amount = 19
 
-            self.serial = i2c(port=6, address=config.OLED_ADDRESS)
-            self.device = ssd1306(self.serial, height=64, rotate=0)
-            self.virtual = viewport(self.device, width=128, height=768)
+                self.serial = i2c(port=6, address=config.OLED_ADDRESS)
+                self.device = ssd1306(self.serial, height=64, rotate=0)
+                self.virtual = viewport(self.device, width=128, height=768)
 
-            self.t = threading.Thread(target=self.animateSkrolling)
-            self.t.setDaemon(True)
-            self.t.start()
-            with canvas(self.virtual) as draw:
-                draw.text((20, 5), text="IFK AIR SENSOR", fill="white")
-                draw.text((28, 20), text="version 0.1", fill="white")
-                draw.text((15, 35), text="hostname:" + hostname, fill="white")
-                draw.text((23, 50), text="startup phase", fill="white")
-            print("OLED connected to i2c6 on address:", hex(config.OLED_ADDRESS))
-        except:
-            print("No OLED display found on i2c6 address", hex(config.OLED_ADDRESS))
+                self.t = threading.Thread(target=self.animateSkrolling)
+                self.t.setDaemon(True)
+                self.t.start()
+                with canvas(self.virtual) as draw:
+                    draw.text((20, 5), text="IFK AIR SENSOR", fill="white")
+                    draw.text((28, 20), text="version 0.1", fill="white")
+                    draw.text((15, 35), text="hostname:" + hostname, fill="white")
+                    draw.text((23, 50), text="startup phase", fill="white")
+                print("OLED connected to i2c6 on address:", hex(config.OLED_ADDRESS))
+            except:
+                print("No OLED display found on i2c6 address", hex(config.OLED_ADDRESS))
 
     def animateSkrolling(self):
         while True:

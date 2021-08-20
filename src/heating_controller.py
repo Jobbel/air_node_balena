@@ -16,7 +16,7 @@ class HeatingController(object):
         # Humidity PID is reversed, heating -> humidity drops
         self.pid_h = PID(-20, -0.02, -0, setpoint=config.HEATER_PID_HUMID_SETPOINT, sample_time=None)
         self.pid_h.output_limits = (0, 100)
-        self.pid_h.tunings = config.HEATER_PID_TEMP_TUNING
+        self.pid_h.tunings = config.HEATER_PID_HUMID_TUNING
         # Temperature PID is normal, heating -> temperature rises
         self.pid_t = PID(20, 0.02, 0, setpoint=config.HEATER_PID_TEMP_SETPOINT, sample_time=None)
         self.pid_t.output_limits = (0, 100)
