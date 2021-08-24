@@ -2,26 +2,27 @@ import datetime
 import logging
 import time
 
-import logging_controller
+import config
 import prt
 import psutil
 from adc_handler import ADCHandler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from heating_controller import HeatingController
 from hyt_handler import HYTHandler
+from logging_controller import LoggingController
 from modem_handler import ModemHandler
 from mqtt_controller import MQTTController
+from oled_controller import OLEDController
 from opc_handler import OPCHandler
 from prt import OncePrinter
 from requests import get
 from sht_handler import SHTHandler
-from oled_controller import OLEDController
-import config
 
 ### GLOBAL VARS ###
 prt.global_entity = OncePrinter()  # This instantiates the OncePrinter used across all modules
 modem = ModemHandler()  # This reads gps and signal strength data from the modem periodically
 mqtt = MQTTController()  # This instantiates an mqtt object and tries to connect
+logg = LoggingController()  # This object will log average and raw data to a usb drive
 if config.HEATER_ENABLE:
     heat = HeatingController()
 if config.OLED_ENABLE:
@@ -44,15 +45,22 @@ try:
 except:
     print("Sensor startup failed!")
 
+
 def getCPUTemp():
-    temp_file = open('/sys/class/thermal/thermal_zone0/temp')
-    return round(float(temp_file.read()) / 1000, 2)
+    try:
+        temp_file = open('/sys/class/thermal/thermal_zone0/temp')
+        return round(float(temp_file.read()) / 1000, 2)
+    except:
+        return 0
 
 
 def getUptime():
-    with open('/proc/uptime', 'r') as f:
-        uptime_seconds = round(float(f.readline().split()[0]))
-    return str(datetime.timedelta(seconds=uptime_seconds))
+    try:
+        temp_file = open('/proc/uptime', 'r')
+        uptime_seconds = round(float(temp_file.readline().split()[0]))
+        return str(datetime.timedelta(seconds=uptime_seconds))
+    except:
+        return 0
 
 
 def getDiskUsage():
@@ -145,13 +153,14 @@ def generatePublishingMessage(mean_data):
                "lon": lon_buffer,
                "alt": alt_buffer,
                "rssi": rssi_buffer,
-               "data_used": getTotalDataUsage(),
-               "disk_used": getDiskUsage(),
+               "data_used": getTotalDataUsage() if config.GPS_POLL_ENABLE else 0,
+               "disk_used": getDiskUsage() if config.LOGGING_RAW_ENABLE or config.LOGGING_AVG_ENABLE else 0,
                "cpu_load": psutil.cpu_percent(),
                "cpu_temp": getCPUTemp(),
                "uptime": getUptime(),
                "public_ip": public_ip,
-               "modem_num": modem.getMMNumber()
+               "modem_num": modem.getMMNumber(),
+               "logger_state": logg.getLoggerState()
            }}
     return appendTimestampsTo(ret)
 
@@ -162,18 +171,18 @@ def everySecond():
     if config.HEATER_ENABLE:
         heat.updateHeating(raw_data)
     if config.OLED_ENABLE and config.OLED_RAW:
-        oled.updateView(raw_data, mqtt.getConnected(), modem.getMMNumber())
-    if config.ENABLE_RAW_LOG:
-        logging_controller.logDataTo("raw", appendTimestampsTo(raw_data))
+        oled.updateView(raw_data, mqtt.getConnected(), modem.getMMNumber(), logg.getLoggerState())
+    if config.LOGGING_RAW_ENABLE:
+        logg.logDataTo("raw", appendTimestampsTo(raw_data))
 
 
 def everyMinute():
     avg_data = calculateMeanData(minute_data)
     minute_data.clear()
     if config.OLED_ENABLE and not config.OLED_RAW:
-        oled.updateView(avg_data, mqtt.getConnected(), modem.getMMNumber())
-    if config.ENABLE_AVG_LOG:
-        logging_controller.logDataTo("avg", appendTimestampsTo(avg_data))
+        oled.updateView(avg_data, mqtt.getConnected(), modem.getMMNumber(), logg.getLoggerState())
+    if config.LOGGING_AVG_ENABLE:
+        logg.logDataTo("avg", appendTimestampsTo(avg_data))
     mqtt.publishData(generatePublishingMessage(avg_data))
 
 
@@ -198,6 +207,7 @@ except KeyboardInterrupt:
     print("Cleaning up")
     sched.shutdown()
     modem.stop()
+    logg.stop()
     if config.HEATER_ENABLE:
         heat.stop()
     if config.OLED_ENABLE:
@@ -210,3 +220,4 @@ except KeyboardInterrupt:
         hyt.stop()
     if config.ADC_ENABLE:
         adc.stop()
+    print("Cleanup completed")

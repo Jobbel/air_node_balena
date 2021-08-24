@@ -3,8 +3,8 @@ NODE_ID = "testnode_balena"
 DIGIT_ACCURACY = 2  # To how many decimal digits should the sensor values be rounded
 
 # Logging settings
-ENABLE_RAW_LOG = True  # Log sensor data every second
-ENABLE_AVG_LOG = True  # Log sensor data every minute
+LOGGING_RAW_ENABLE = True  # Log sensor data every second
+LOGGING_AVG_ENABLE = True  # Log sensor data every minute
 # There has to be a Folder called log_data on the USB Drive
 LOGGING_DIRECTORY = "/mnt/storage/log_data/"  # DONT CHANGE THIS without changing logging controller!
 
@@ -18,7 +18,7 @@ MQTT_USER = "***REMOVED***"
 MQTT_PASS = "***REMOVED***"
 
 # GPS settings
-GPS_POLL_ENABLE = True
+GPS_POLL_ENABLE = False
 
 # HARDWARE SETTINGS
 HEATER_PIN = 12
@@ -33,7 +33,7 @@ HEATER_PID_HUMID_SETPOINT = 50
 # Oled settings
 OLED_ADDRESS = 0x3c
 OLED_ENABLE = True
-OLED_RAW = False  # display raw data every second if true or use average data every minute if false
+OLED_RAW = True  # display raw data every second if true or use average data every minute if false
 
 # SENSOR SETTINGS
 # Note: to use the ADC gas sensors you must have the SHT enabled because the outside temperature is required

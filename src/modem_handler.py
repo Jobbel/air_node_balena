@@ -16,7 +16,7 @@ class ModemHandler(object):
         self.modem_restart_count = 0
 
         if config.GPS_POLL_ENABLE:
-            self.t = threading.Thread(target=self.modemPoller)
+            self.t = threading.Thread(target=self.modemWorker)
             self.t.setDaemon(True)
             self.t.start()
 
@@ -29,7 +29,7 @@ class ModemHandler(object):
     def getMMNumber(self):
         return self.modem_num
 
-    def modemPoller(self):
+    def modemWorker(self):
         time.sleep(20)
         print("Started GPS polling thread")
         while True:

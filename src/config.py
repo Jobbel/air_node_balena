@@ -6,8 +6,8 @@ try:
     NODE_ID = os.environ['RESIN_DEVICE_NAME_AT_INIT']
     DIGIT_ACCURACY = int(os.environ['DIGIT_ACCURACY'])  # To how many decimal digits should the sensor values be rounded
     # Logging settings
-    ENABLE_RAW_LOG = os.environ['ENABLE_RAW_LOG'] in 'True'  # Log sensor data every second
-    ENABLE_AVG_LOG = os.environ['ENABLE_AVG_LOG'] in 'True'  # Log sensor data every minute
+    LOGGING_RAW_ENABLE = os.environ['LOGGING_RAW_ENABLE'] in 'True'  # Log sensor data every second
+    LOGGING_AVG_ENABLE = os.environ['LOGGING_AVG_ENABLE'] in 'True'  # Log sensor data every minute
     # There has to be a Folder called log_data on the USB Drive
     LOGGING_DIRECTORY = os.environ['LOGGING_DIRECTORY']  # DONT CHANGE THIS without changing logging controller!
 

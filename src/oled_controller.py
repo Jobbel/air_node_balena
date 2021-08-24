@@ -27,7 +27,7 @@ class OLEDController(object):
                 self.device = ssd1306(self.serial, height=64, rotate=0)
                 self.virtual = viewport(self.device, width=128, height=768)
 
-                self.t = threading.Thread(target=self.animateSkrolling)
+                self.t = threading.Thread(target=self.oledWorker)
                 self.t.setDaemon(True)
                 self.t.start()
                 with canvas(self.virtual) as draw:
@@ -39,8 +39,8 @@ class OLEDController(object):
             except:
                 print("No OLED display found on i2c6 address", hex(config.OLED_ADDRESS))
 
-    def animateSkrolling(self):
-        while True:
+    def oledWorker(self):
+        while False:
             skroll_len = 9 * self.list_entry_amount  # How far we have to skroll to show all entrys with a 9 pixel high text
             # This list will skroll up and down and wait for some iterations at the top and bottom
             skroll_list = [0] * 60 + list(range(skroll_len)) + [skroll_len] * 30 + list(reversed(range(skroll_len)))
@@ -64,12 +64,14 @@ class OLEDController(object):
         else:
             return ""
 
-    def updateView(self, data, mqtt_connected, modem_num):
+    def updateView(self, data, mqtt_connected, modem_num, logger_state):
         data_string = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + "\n"
+        data_string += f"logger_state: {logger_state}\n"
         for key, value in data.items():
             data_string += f"{key}: {value} {self.getUnit(key)}\n"
         data_string += f"server_connect: {mqtt_connected}\n"
         data_string += f"modem_num: {modem_num}\n"
+        data_string += f"logger_state: {logger_state}\n"
 
         try:
             with canvas(self.virtual) as draw:

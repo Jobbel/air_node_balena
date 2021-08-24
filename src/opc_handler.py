@@ -18,12 +18,12 @@ class OPCHandler(SensorBase):
         self.request_data = threading.Event()  # this event is used to request data from outside the thread
         self.data = None  # used to pass data from runner thread to getData
 
-        self.t = threading.Thread(target=self.runner)
+        self.t = threading.Thread(target=self.OPCWorker)
         self.t.setDaemon(True)
         self.t.start()
         time.sleep(3)  # Give the thread some time to connect to the opc
 
-    def runner(self):
+    def OPCWorker(self):
         while True:
             if not self.connected:
                 self.alphasense = pyopcn3.OPCN3(self.spi)
