@@ -62,7 +62,7 @@ class LoggingController(object):
                         self.logger_state = "error"
                         self.resetLoggers()
                         #os.system("umount -l /mnt/storage && rmdir /mnt/storage")
-                        os.system("fsck -y /dev/sda1")
+                        os.system("fsck -y /dev/sda1 > /dev/null")
                         #os.system(f"mkdir - p /mnt/storage && mount -t vfat -U CAA2-D115 -o rw /mnt/storage")
                         time.sleep(10)
                 else:

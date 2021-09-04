@@ -13,7 +13,7 @@ class ModemHandler(object):
         self.current_gps_data = {"lat": 0, "lon": 0, "alt": 0, "rssi": 0}
         self.modem_num = -1
         self.fail_count = 0
-        self.modem_restart_count = 0
+        self.modem_restart_count = 1
 
         if config.GPS_POLL_ENABLE:
             self.t = threading.Thread(target=self.modemWorker)
@@ -54,7 +54,7 @@ class ModemHandler(object):
             if self.fail_count > 100:
                 print(
                     f"failed to fetch GPS data more than 100 times, restarting Modem for the: {self.modem_restart_count} time since service start")
-                self.fail_count = 0
+                self.fail_count = 1
                 self.restartModem()
 
             time.sleep(3)
@@ -63,9 +63,9 @@ class ModemHandler(object):
         self.modem_restart_count += 1
         os.system("umount -l /mnt/storage")  # Unmount usb drive first to avoid memory corruption
         os.system("rmdir /mnt/storage")  # remove this if usb hub method works
-        os.system("uhubctl -l 1-1 -a 0  > /dev/null")
+        os.system("uhubctl -l 1-1 -a 0 > /dev/null")
         time.sleep(5)
-        os.system("uhubctl -l 1-1 -a 1  > /dev/null")
+        os.system("uhubctl -l 1-1 -a 1 > /dev/null")
         time.sleep(20)
 
     def updateModemNumber(self):
