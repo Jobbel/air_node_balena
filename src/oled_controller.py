@@ -40,7 +40,7 @@ class OLEDController(object):
                 print("No OLED display found on i2c6 address", hex(config.OLED_ADDRESS))
 
     def oledWorker(self):
-        while False:
+        while True:
             skroll_len = 9 * self.list_entry_amount  # How far we have to skroll to show all entrys with a 9 pixel high text
             # This list will skroll up and down and wait for some iterations at the top and bottom
             skroll_list = [0] * 60 + list(range(skroll_len)) + [skroll_len] * 30 + list(reversed(range(skroll_len)))

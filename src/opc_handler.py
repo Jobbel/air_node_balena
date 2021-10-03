@@ -1,9 +1,10 @@
 import threading
 import time
+
+import config
 import prt
 import pyopcn3
 import spidev
-import config
 from generic_sensor import SensorBase
 
 
@@ -37,7 +38,7 @@ class OPCHandler(SensorBase):
                 time.sleep(0.01)  # This keeps CPU usage from always hitting 100%
 
     def getData(self):
-        ret = {'pm1': 0, 'pm25': 0, 'pm10': 0, 'opc_humid': 0, 'opc_temp': 0}
+        ret = {'pm1': 0, 'pm25': 0, 'pm10': 0, 'opc_flow': 0, 'opc_humid': 0, 'opc_temp': 0}
         if self.connected:
             self.request_data.set()
             time.sleep(0.1)
@@ -45,9 +46,11 @@ class OPCHandler(SensorBase):
                 ret['pm1'] = round(self.data['PM1'], config.DIGIT_ACCURACY)
                 ret['pm25'] = round(self.data['PM2.5'], config.DIGIT_ACCURACY)
                 ret['pm10'] = round(self.data['PM10'], config.DIGIT_ACCURACY)
+                ret['opc_flow'] = round(self.data['SFR'], config.DIGIT_ACCURACY)
                 # Apply two point calibration
                 ret['opc_humid'] = self.calibrate(self.data['Relative humidity'], config.OPC_CALI_HUMID)
                 ret['opc_temp'] = self.calibrate(self.data['Temperature'], config.OPC_CALI_TEMP)
+                # print(self.data)
             else:
                 self.connected = False
         else:

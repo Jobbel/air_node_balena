@@ -1,5 +1,7 @@
 import datetime
 import logging
+import signal
+import sys
 import time
 
 import config
@@ -186,7 +188,17 @@ def everyMinute():
     mqtt.publishData(generatePublishingMessage(avg_data))
 
 
+def exitHandler(signum, frame):
+    print("Received Signal: ", str(signum))
+    # This throws a SystemExit exception and shuts down gracefully.
+    sys.exit(0)
+
+
 try:
+    # capture exit signals (from tini if running in docker container)
+    signal.signal(signal.SIGINT, exitHandler)
+    signal.signal(signal.SIGTERM, exitHandler)
+
     # Comment these out if you want to see console logs
     logging.getLogger('apscheduler').setLevel(logging.WARNING)
     logging.getLogger('raw_logger').propagate = False
@@ -202,20 +214,20 @@ try:
     sched.add_job(updatePublicIP, 'interval', hours=1)
     sched.start()
 
-except KeyboardInterrupt:
+except (SystemExit, KeyboardInterrupt):
     ### Sensor cleanup ###
     print("Cleaning up")
     sched.shutdown()
     modem.stop()
     logg.stop()
+    if config.SHT_ENABLE:
+        sht.stop()
     if config.HEATER_ENABLE:
         heat.stop()
     if config.OLED_ENABLE:
         oled.stop()
     if config.OPC_ENABLE:
         opc.stop()
-    if config.SHT_ENABLE:
-        sht.stop()
     if config.HYT_ENABLE:
         hyt.stop()
     if config.ADC_ENABLE:

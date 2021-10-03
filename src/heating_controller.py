@@ -1,8 +1,13 @@
 import RPi.GPIO
+import config
 import prt
 from simple_pid import PID
-import config
 
+# define custom exceptions describing heater conditions
+class MissingDataException(Exception):
+    pass
+class OverheatingException(Exception):
+    pass
 
 class HeatingController(object):
     def __init__(self):
@@ -30,11 +35,18 @@ class HeatingController(object):
             # outside_temperature = data['hyt_temp']
             # if opc has a fault, dont heat
             if inside_temperature == 0.00 and inside_humidity == 0.00:
-                raise KeyError
-        except KeyError:
+                prt.global_entity.printOnce("Missing sensor data, disabling heater", "Heater back online")
+                raise MissingDataException
+            # if opc temperature is too high dont continue heating
+            if inside_temperature > 60:
+                prt.global_entity.printOnce("OPC Overheating, disabling heater", "OPC cooled down, Heater back online")
+                raise OverheatingException
+        except (MissingDataException, OverheatingException):
             self.heater_power = 0
             self.p.ChangeDutyCycle(self.heater_power)
-            prt.global_entity.printOnce("Missing sensor data, disabling heater", "Heater back online")
+            # reset pids to avoid integral windup
+            self.pid_h.auto_mode = False
+            self.pid_t.auto_mode = False
             return
 
         if config.HEATER_DEBUG:
