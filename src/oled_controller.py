@@ -66,7 +66,6 @@ class OLEDController(object):
 
     def updateView(self, data, mqtt_connected, modem_num, logger_state):
         data_string = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + "\n"
-        data_string += f"logger_state: {logger_state}\n"
         for key, value in data.items():
             data_string += f"{key}: {value} {self.getUnit(key)}\n"
         data_string += f"server_connect: {mqtt_connected}\n"

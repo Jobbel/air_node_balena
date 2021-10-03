@@ -37,6 +37,9 @@ class LoggingController(object):
         self.q = Queue()
 
         if config.LOGGING_RAW_ENABLE or config.LOGGING_AVG_ENABLE:
+            # if any logging is enabled, make sure directory exists
+            os.makedirs(config.LOGGING_DIRECTORY, exist_ok=True)
+            # and start logging thread
             self.t = threading.Thread(target=self.loggingWorker)
             self.t.setDaemon(True)
             self.t.start()
@@ -58,17 +61,14 @@ class LoggingController(object):
                         self.logger_state = "working" if self.q.empty() else "backlog"
                     except Exception as e:
                         print(e)
-                        print(f"Failed to generate {item[0]} logger, running fdisk on usb drive")
+                        print(f"Failed to generate {item[0]} logger")
                         self.logger_state = "error"
                         self.resetLoggers()
-                        #os.system("umount -l /mnt/storage && rmdir /mnt/storage")
-                        os.system("fsck -y /dev/sda1 > /dev/null")
-                        #os.system(f"mkdir - p /mnt/storage && mount -t vfat -U CAA2-D115 -o rw /mnt/storage")
                         time.sleep(10)
                 else:
-                    prt.global_entity.printOnce("No USB Drive detected, not logging any data", "USB Drive detected, restarted logging")
-                    self.logger_state = "no USB"
+                    self.logger_state = "wrong path"
                     self.resetLoggers()
+                    time.sleep(10)
             time.sleep(0.2)
 
 
