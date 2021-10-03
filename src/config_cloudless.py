@@ -1,5 +1,5 @@
 # SOFTWARE SETTINGS
-NODE_ID = "local-testnode"
+NODE_ID = "testnode"
 DIGIT_ACCURACY = 2  # To how many decimal digits should the sensor values be rounded
 
 # Logging settings
