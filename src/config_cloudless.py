@@ -1,12 +1,11 @@
 # SOFTWARE SETTINGS
-NODE_ID = "testnode_balena"
+NODE_ID = "testnode"
 DIGIT_ACCURACY = 2  # To how many decimal digits should the sensor values be rounded
 
 # Logging settings
 LOGGING_RAW_ENABLE = True  # Log sensor data every second
 LOGGING_AVG_ENABLE = True  # Log sensor data every minute
-# There has to be a Folder called log_data on the USB Drive
-LOGGING_DIRECTORY = "/mnt/storage/log_data/"  # DONT CHANGE THIS without changing logging controller!
+LOGGING_DIRECTORY = "/data/log_data/"
 
 # MQTT settings
 MQTT_BASE_TOPIC = "airdata"

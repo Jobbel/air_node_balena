@@ -38,9 +38,13 @@ class ADCHandler(SensorBase):
         try:
             values_adc_a = [0] * 4
             values_adc_b = [0] * 4
+
             for i in range(4):
                 values_adc_a[i] = self.adc_a.read_adc(i, gain=self.ADCGain)
                 values_adc_b[i] = self.adc_b.read_adc(i, gain=self.ADCGain)
+
+            #print("Raw values:",values_adc_a, values_adc_b)
+            #print("Voltages:", [round(x * self.mVGain/1000, 3) for x in (values_adc_a + values_adc_b)])
 
             # calculate gas values from raw adc values
             ppbCO = self.rawADCtoPPB(values_adc_a[1], values_adc_a[0], config.ADC_CALI_CO, n_co)
