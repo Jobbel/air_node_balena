@@ -10,7 +10,7 @@
 # Make sure we have a valid device name
 DEVNAME=${DEVNAME:=$1}
 if [[ -z $DEVNAME ]]; then
-  echo "Invalid device name: $DEVNAME" >> /usr/src/mount.log
+  echo "Invalid device name: $DEVNAME"
   exit 1
 fi
 
@@ -21,7 +21,7 @@ ID_FS_UUID_ENC=${ID_FS_UUID_ENC:=$(udevadm info -n $DEVNAME | awk -F "=" '/ID_FS
 ID_FS_LABEL_ENC=${ID_FS_LABEL_ENC:=$(udevadm info -n $DEVNAME | awk -F "=" '/ID_FS_LABEL_ENC/{ print $2 }')}
 
 if [[ -z $ID_BUS || -z $ID_FS_TYPE || -z $ID_FS_UUID_ENC || -z $ID_FS_LABEL_ENC ]]; then
-  echo "Could not get device information: $DEVNAME" >> /usr/src/mount.log
+  echo "Could not get device information: $DEVNAME"
   exit 1
 fi
 
@@ -30,15 +30,15 @@ MOUNT_POINT=/mnt/storage
 
 # Bail if file system is not supported by the kernel
 if ! grep -qw $ID_FS_TYPE /proc/filesystems; then
-  echo "File system not supported: $ID_FS_TYPE" >> /usr/src/mount.log
+  echo "File system not supported: $ID_FS_TYPE"
   exit 1
 fi
 
 # Mount device
 if findmnt -rno SOURCE,TARGET $DEVNAME >/dev/null; then
-    echo "Device $DEVNAME is already mounted!" >> /usr/src/mount.log
+    echo "Device $DEVNAME is already mounted!"
 else
-    echo "Mounting - Source: $DEVNAME - Destination: $MOUNT_POINT" >> /usr/src/mount.log
+    echo "Mounting - Source: $DEVNAME - Destination: $MOUNT_POINT"
     mkdir -p $MOUNT_POINT
     mount -t $ID_FS_TYPE -o rw $DEVNAME $MOUNT_POINT
 fi
