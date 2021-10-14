@@ -6,7 +6,7 @@ FROM balenalib/%%BALENA_MACHINE_NAME%%-python:3-stretch-run
 # for instance if you need git, just uncomment the line below.
 RUN install_packages build-essential gcc linux-libc-dev libmm-glib-dev dbus pkg-config
 RUN install_packages libdbus-glib-1-dev libgirepository1.0-dev git libusb-1.0-0-dev dosfstools
-RUN install_packages util-linux grep libdbus-1-dev net-tools curl modemmanager udisks2
+RUN install_packages util-linux grep libdbus-1-dev net-tools curl modemmanager udisks2 rsync
 RUN pip install --upgrade pip
 # RUN apt-get update
 # RUN pip install smbus2
@@ -38,7 +38,7 @@ RUN pip install -r requirements.txt
 COPY ./src ./
 
 # Enable udevd so that plugged dynamic hardware devices show up in our container.
-ENV UDEV=1
+ENV UDEV=on
 
 # for balena supervisor versions 1.7.0 and newer (both balenaOS 1.x and 2.x) use this version:
 ENV DBUS_SYSTEM_BUS_ADDRESS=unix:path=/host/run/dbus/system_bus_socket

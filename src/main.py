@@ -67,7 +67,8 @@ def getUptime():
 
 def getDiskUsage():
     try:
-        return psutil.disk_usage('/mnt/storage').percent
+        return psutil.disk_usage('/').percent
+        #return psutil.disk_usage('/mnt/storage').percent
     except:
         prt.global_entity.printOnce("Failed to fetch disk usage", "Successfully fetching disk usage again", 62)
         return 0

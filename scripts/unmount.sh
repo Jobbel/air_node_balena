@@ -10,7 +10,7 @@
 # Make sure we have a valid device name
 DEVNAME=${DEVNAME:=$1}
 if [[ -z $DEVNAME ]]; then
-  echo "Invalid device name: $DEVNAME" >> /usr/src/unmount.log
+  echo "Invalid device name: $DEVNAME"
   exit 1
 fi
 
@@ -21,7 +21,7 @@ ID_FS_UUID_ENC=${ID_FS_UUID_ENC:=$(udevadm info -n $DEVNAME | awk -F "=" '/ID_FS
 ID_FS_LABEL_ENC=${ID_FS_LABEL_ENC:=$(udevadm info -n $DEVNAME | awk -F "=" '/ID_FS_LABEL_ENC/{ print $2 }')}
 
 if [[ -z $ID_BUS || -z $ID_FS_TYPE || -z $ID_FS_UUID_ENC || -z $ID_FS_LABEL_ENC ]]; then
-  echo "Could not get device information: $DEVNAME" >> /usr/src/unmount.log
+  echo "Could not get device information: $DEVNAME"
   exit 1
 fi
 
@@ -30,9 +30,9 @@ MOUNT_POINT=/mnt/storage
 
 # Unmount device
 if findmnt -rno SOURCE,TARGET $DEVNAME >/dev/null; then
-  echo "Unmounting device - Source: $DEVNAME - Destination: $MOUNT_POINT" >> /usr/src/unmount.log
-  umount -l $MOUNT_POINT
+  echo "Unmounting device - Source: $DEVNAME - Destination: $MOUNT_POINT"
+  umount -f $MOUNT_POINT
   rmdir $MOUNT_POINT
 else
-  echo "No mount point found for device $DEVNAME." >> /usr/src/unmount.log
+  echo "No mount point found for device $DEVNAME."
 fi
