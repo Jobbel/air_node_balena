@@ -68,7 +68,7 @@ def getUptime():
 def getDiskUsage():
     try:
         return psutil.disk_usage('/').percent
-        #return psutil.disk_usage('/mnt/storage').percent
+        # return psutil.disk_usage('/mnt/storage').percent
     except:
         prt.global_entity.printOnce("Failed to fetch disk usage", "Successfully fetching disk usage again", 62)
         return 0
@@ -190,8 +190,24 @@ def everyMinute():
 
 
 def exitHandler(signum, frame):
-    print("Received Signal: ", str(signum))
-    # This throws a SystemExit exception and shuts down gracefully.
+    print("Received Signal: ", str(signum), "\nCleaning up")
+    ### Sensor cleanup ###
+    sched.shutdown()
+    modem.stop()
+    logg.stop()
+    if config.SHT_ENABLE:
+        sht.stop()
+    if config.HEATER_ENABLE:
+        heat.stop()
+    if config.OLED_ENABLE:
+        oled.stop()
+    if config.OPC_ENABLE:
+        opc.stop()
+    if config.HYT_ENABLE:
+        hyt.stop()
+    if config.ADC_ENABLE:
+        adc.stop()
+    print("Cleanup completed")
     sys.exit(0)
 
 
@@ -215,22 +231,5 @@ try:
     sched.add_job(updatePublicIP, 'interval', hours=1)
     sched.start()
 
-except (SystemExit, KeyboardInterrupt):
-    ### Sensor cleanup ###
-    print("Cleaning up")
-    sched.shutdown()
-    modem.stop()
-    logg.stop()
-    if config.SHT_ENABLE:
-        sht.stop()
-    if config.HEATER_ENABLE:
-        heat.stop()
-    if config.OLED_ENABLE:
-        oled.stop()
-    if config.OPC_ENABLE:
-        opc.stop()
-    if config.HYT_ENABLE:
-        hyt.stop()
-    if config.ADC_ENABLE:
-        adc.stop()
-    print("Cleanup completed")
+except KeyboardInterrupt:
+    exitHandler("User Exit", None)

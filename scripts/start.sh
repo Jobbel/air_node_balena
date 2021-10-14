@@ -34,12 +34,16 @@ do
 	else
 		echo "Internet connection seems down, restarting modem"
 		# Force unmount USB Drive
-		umount -f $MOUNT_POINT
+		umount -f $MOUNT_POINT  > /dev/null
 		rmdir $MOUNT_POINT
-		udisksctl power-off -b /dev/sda
+		udisksctl power-off -b $DEVNAME  > /dev/null
 		# Reset USB power
 		uhubctl -l 1-1 -a 0  > /dev/null
 		sleep 5
 		uhubctl -l 1-1 -a 1  > /dev/null
+		sleep 10
+		# Mount USB Drive again
+		mkdir -p $MOUNT_POINT
+    mount -v -t $ID_FS_TYPE -o rw $DEVNAME $MOUNT_POINT  > /dev/null
 	fi
 done
