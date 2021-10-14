@@ -24,7 +24,7 @@ do
 	
 	if isMounted $DEVNAME; then
 		echo "USB device is mounted, updating log files"
-		rsync -rtqP --ignore-existing --inplace /data/log_data $MOUNT_POINT
+		rsync -a /data/log_data $MOUNT_POINT
 	else 
 		echo "No USB device is mounted"
 	fi
