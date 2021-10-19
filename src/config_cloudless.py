@@ -24,8 +24,8 @@ HEATER_PIN = 12
 HEATER_ENABLE = True  # This should only be enabled if an opc is used
 HEATER_DEBUG = False  # Enable heater debug messages
 HEATER_PID_ENABLE = True  # Enable PID controllers if True, use 2 point controller if False
-HEATER_PID_TEMP_TUNING = (20, 0.02, 0)
-HEATER_PID_HUMID_TUNING = (-20, -0.02, -0)
+HEATER_PID_TEMP_TUNING = (20, 0.02, 0)  # Has to be positive to counter falling temperature
+HEATER_PID_HUMID_TUNING = (-20, -0.02, -0)  # Has to be negative to counter rising humidity
 HEATER_PID_TEMP_SETPOINT = 15
 HEATER_PID_HUMID_SETPOINT = 50
 
@@ -57,7 +57,7 @@ HYT_CALI_TEMP = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 HYT_CALI_HUMID = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 
 # Gas sensor calibration settings
-ADC_ENABLE = True # this requires SHT to be enabled
+ADC_ENABLE = True # this requires SHT to be enabled because it uses the outside temperature
 
 ADC_ADDRESS_A = 0x48
 ADC_ADDRESS_B = 0x49

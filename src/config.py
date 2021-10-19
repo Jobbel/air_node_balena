@@ -8,8 +8,7 @@ try:
     # Logging settings
     LOGGING_RAW_ENABLE = os.environ['LOGGING_RAW_ENABLE'] in 'True'  # Log sensor data every second
     LOGGING_AVG_ENABLE = os.environ['LOGGING_AVG_ENABLE'] in 'True'  # Log sensor data every minute
-    # There has to be a Folder called log_data on the USB Drive
-    LOGGING_DIRECTORY = os.environ['LOGGING_DIRECTORY']  # DONT CHANGE THIS without changing logging controller!
+    LOGGING_DIRECTORY = os.environ['LOGGING_DIRECTORY']
 
     # MQTT settings
     MQTT_BASE_TOPIC = os.environ['MQTT_BASE_TOPIC']
@@ -70,6 +69,6 @@ try:
     ADC_CALI_NO = literal_eval(os.environ.get("ADC_CALI_NO"))
     ADC_CALI_NO2 = literal_eval(os.environ.get("ADC_CALI_NO2"))
     ADC_CALI_O3 = literal_eval(os.environ.get("ADC_CALI_O3"))
-except:
-    print("Failed to load cloud config from environment, using local config instead")
+except Exception as e:
+    print(f"Failed to load cloud config from environment, using local config instead. Error at: {e}")
     from config_cloudless import *
