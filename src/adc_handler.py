@@ -28,7 +28,8 @@ class ADCHandler(SensorBase):
         return ((w - cali['w0']) - (n * (a - cali['a0']))) / cali['sens']
 
     def getData(self, other_sensor_data):
-        temp = other_sensor_data["sht_temp"]
+        #temp = other_sensor_data["sht_temp"]
+        temp = 20  # The calibration has been done at this temperature
         # Calculate n factors from the temperature
         n_co = (-1 if temp < 25 else -3.8)
         n_no = (1.04 if temp < 15 else (1.82 if temp < 25 else 2))
