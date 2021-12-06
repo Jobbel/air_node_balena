@@ -38,7 +38,18 @@ class OPCHandler(SensorBase):
                 time.sleep(0.01)  # This keeps CPU usage from always hitting 100%
 
     def getData(self):
-        ret = {'pm1': 0, 'pm25': 0, 'pm10': 0, 'opc_flow': 0, 'opc_humid': 0, 'opc_temp': 0}
+        ret = {'pm1': 0, 'pm25': 0, 'pm10': 0, 'opc_flow': 0, 'opc_humid': 0, 'opc_temp': 0, 'RAW_OPC_Bin 0': 0,
+               'RAW_OPC_Bin 1': 0, 'RAW_OPC_Bin 2': 0, 'RAW_OPC_Bin 3': 0, 'RAW_OPC_Bin 4': 0, 'RAW_OPC_Bin 5': 0,
+               'RAW_OPC_Bin 6': 0, 'RAW_OPC_Bin 7': 0, 'RAW_OPC_Bin 8': 0, 'RAW_OPC_Bin 9': 0, 'RAW_OPC_Bin 10': 0,
+               'RAW_OPC_Bin 11': 0, 'RAW_OPC_Bin 12': 0, 'RAW_OPC_Bin 13': 0, 'RAW_OPC_Bin 14': 0, 'RAW_OPC_Bin 15': 0,
+               'RAW_OPC_Bin 16': 0, 'RAW_OPC_Bin 17': 0, 'RAW_OPC_Bin 18': 0, 'RAW_OPC_Bin 19': 0, 'RAW_OPC_Bin 20': 0,
+               'RAW_OPC_Bin 21': 0, 'RAW_OPC_Bin 22': 0, 'RAW_OPC_Bin 23': 0, 'RAW_OPC_Bin1 MToF': 0,
+               'RAW_OPC_Bin3 MToF': 0, 'RAW_OPC_Bin5 MToF': 0, 'RAW_OPC_Bin7 MToF': 0, 'RAW_OPC_Sampling Period': 0,
+               'RAW_OPC_SFR': 0, 'RAW_OPC_Temperature': 0, 'RAW_OPC_Relative humidity': 0, 'RAW_OPC_PM1': 0,
+               'RAW_OPC_PM2.5': 0, 'RAW_OPC_PM10': 0, 'RAW_OPC_Reject count Glitch': 0,
+               'RAW_OPC_Reject count LongTOF': 0, 'RAW_OPC_Reject count Ratio': 0, 'RAW_OPC_Reject Count OutOfRange': 0,
+               'RAW_OPC_Fan rev count': 0, 'RAW_OPC_Laser status': 0, 'RAW_OPC_Checksum': 0}
+
         if self.connected:
             self.request_data.set()
             time.sleep(0.1)
@@ -50,7 +61,11 @@ class OPCHandler(SensorBase):
                 # Apply two point calibration
                 ret['opc_humid'] = self.calibrate(self.data['Relative humidity'], config.OPC_CALI_HUMID)
                 ret['opc_temp'] = self.calibrate(self.data['Temperature'], config.OPC_CALI_TEMP)
-                # print(self.data)
+
+                prefix = "RAW_OPC_"
+                prefixed_data = {prefix + str(key): val for key, val in self.data.items()}
+                ret.update(prefixed_data)
+
             else:
                 self.connected = False
         else:

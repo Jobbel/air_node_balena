@@ -168,13 +168,17 @@ def generatePublishingMessage(mean_data):
     return appendTimestampsTo(ret)
 
 
+def removeRAWDataFrom(data):
+    return {key: val for key, val in data.items() if not key.startswith("RAW_")}
+
+
 def everySecond():
     raw_data = getAllData()
     minute_data.append(raw_data)
     if config.HEATER_ENABLE:
         heat.updateHeating(raw_data)
     if config.OLED_ENABLE and config.OLED_RAW:
-        oled.updateView(raw_data, mqtt.getConnected(), modem.getMMNumber(), logg.getLoggerState())
+        oled.updateView(removeRAWDataFrom(raw_data), mqtt.getConnected(), modem.getMMNumber(), logg.getLoggerState())
     if config.LOGGING_RAW_ENABLE:
         logg.logDataTo("raw", appendTimestampsTo(raw_data))
 
@@ -183,11 +187,13 @@ def everyMinute():
     avg_data = calculateMeanData(minute_data)
     minute_data.clear()
     if config.OLED_ENABLE and not config.OLED_RAW:
-        oled.updateView(avg_data, mqtt.getConnected(), modem.getMMNumber(), logg.getLoggerState())
+        oled.updateView(removeRAWDataFrom(avg_data), mqtt.getConnected(), modem.getMMNumber(), logg.getLoggerState())
     if config.LOGGING_AVG_ENABLE:
         logg.logDataTo("avg", appendTimestampsTo(avg_data))
-    mqtt.publishData(generatePublishingMessage(avg_data))
-
+    if config.PUBLISH_RAW_OPC_AND_ADC:
+        mqtt.publishData(generatePublishingMessage(avg_data))
+    else:
+        mqtt.publishData(generatePublishingMessage(removeRAWDataFrom(avg_data)))
 
 def exitHandler(signum, frame):
     print("Received Signal: ", str(signum), "\nCleaning up")

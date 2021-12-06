@@ -1,6 +1,6 @@
 import Adafruit_ADS1x15
-import prt
 import config
+import prt
 from generic_sensor import SensorBase
 
 
@@ -20,7 +20,6 @@ class ADCHandler(SensorBase):
         #  -  16 = +/-0.256V
         # See table 3 in the ADS1015/ADS1115 datasheet for more info on gain.
 
-
     def rawADCtoPPB(self, w_raw, a_raw, cali, n):
         """uses raw working and auxiliary adc values as well as a calibration dict to calculate ppb values"""
         w = w_raw * self.mVGain
@@ -28,7 +27,7 @@ class ADCHandler(SensorBase):
         return ((w - cali['w0']) - (n * (a - cali['a0']))) / cali['sens']
 
     def getData(self, other_sensor_data):
-        #temp = other_sensor_data["sht_temp"]
+        # temp = other_sensor_data["sht_temp"]
         temp = 20  # The calibration has been done at this temperature
         # Calculate n factors from the temperature
         n_co = (-1 if temp < 25 else -3.8)
@@ -44,8 +43,8 @@ class ADCHandler(SensorBase):
                 values_adc_a[i] = self.adc_a.read_adc(i, gain=self.ADCGain)
                 values_adc_b[i] = self.adc_b.read_adc(i, gain=self.ADCGain)
 
-            #print("Raw values:",values_adc_a, values_adc_b)
-            #print("Voltages:", [round(x * self.mVGain/1000, 3) for x in (values_adc_a + values_adc_b)])
+            # print("Raw values:",values_adc_a, values_adc_b)
+            # print("Voltages:", [round(x * self.mVGain/1000, 3) for x in (values_adc_a + values_adc_b)])
 
             # calculate gas values from raw adc values
             ppbCO = self.rawADCtoPPB(values_adc_a[1], values_adc_a[0], config.ADC_CALI_CO, n_co)
@@ -59,11 +58,16 @@ class ADCHandler(SensorBase):
             ppbNO2 = self.calibrate(ppbNO2, config.ADC_CALI_NO2)
             ppbO3 = self.calibrate(ppbO3, config.ADC_CALI_O3)
 
-            return {"CO": ppbCO, "NO": ppbNO, "NO2": ppbNO2, "O3": ppbO3}
+            return {"CO": ppbCO, "NO": ppbNO, "NO2": ppbNO2, "O3": ppbO3,
+                    "RAW_ADC_CO_W": values_adc_a[1] * self.mVGain, "RAW_ADC_CO_A": values_adc_a[0] * self.mVGain,
+                    "RAW_ADC_NO_W": values_adc_a[3] * self.mVGain, "RAW_ADC_NO_A": values_adc_a[2] * self.mVGain,
+                    "RAW_ADC_NO2_W": values_adc_b[1] * self.mVGain, "RAW_ADC_NO2_A": values_adc_b[0] * self.mVGain,
+                    "RAW_ADC_O3_W": values_adc_b[3] * self.mVGain, "RAW_ADC_O3_A": values_adc_b[2] * self.mVGain}
 
         except:
             prt.global_entity.printOnce("ADC disconnected", "ADC back online")
-            return {"CO": 0, "NO": 0, "NO2": 0, "O3": 0}
+            return {"CO": 0, "NO": 0, "NO2": 0, "O3": 0, "RAW_ADC_CO_W": 0, "RAW_ADC_CO_A": 0, "RAW_ADC_NO_W": 0,
+                    "RAW_ADC_NO_A": 0, "RAW_ADC_NO2_W": 0, "RAW_ADC_NO2_A": 0, "RAW_ADC_O3_W": 0, "RAW_ADC_O3_A": 0}
 
     def stop(self):
         self.adc_a.stop_adc()

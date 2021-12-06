@@ -5,6 +5,7 @@ try:
     # SOFTWARE SETTINGS
     NODE_ID = os.environ['RESIN_DEVICE_NAME_AT_INIT']
     DIGIT_ACCURACY = int(os.environ['DIGIT_ACCURACY'])  # To how many decimal digits should the sensor values be rounded
+    PUBLISH_RAW_OPC_AND_ADC = os.environ['PUBLISH_RAW_OPC_AND_ADC'] in 'True'
     # Logging settings
     LOGGING_RAW_ENABLE = os.environ['LOGGING_RAW_ENABLE'] in 'True'  # Log sensor data every second
     LOGGING_AVG_ENABLE = os.environ['LOGGING_AVG_ENABLE'] in 'True'  # Log sensor data every minute
