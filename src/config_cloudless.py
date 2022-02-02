@@ -1,6 +1,7 @@
 # SOFTWARE SETTINGS
 NODE_ID = "testnode"
 DIGIT_ACCURACY = 2  # To how many decimal digits should the sensor values be rounded
+PUBLISH_RAW_OPC_AND_ADC = True
 
 # Logging settings
 LOGGING_RAW_ENABLE = True  # Log sensor data every second

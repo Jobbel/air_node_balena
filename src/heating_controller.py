@@ -38,7 +38,7 @@ class HeatingController(object):
                 prt.global_entity.printOnce("Missing sensor data, disabling heater", "Heater back online")
                 raise MissingDataException
             # if opc temperature is too high dont continue heating
-            if inside_temperature > 60:
+            if inside_temperature > 50:
                 prt.global_entity.printOnce("OPC Overheating, disabling heater", "OPC cooled down, Heater back online")
                 raise OverheatingException
         except (MissingDataException, OverheatingException):
