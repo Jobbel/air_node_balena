@@ -14,8 +14,8 @@ MQTT_QOS = 2
 MQTT_SERVER = "aang.ddnss.de"
 MQTT_PORT = 1883
 MQTT_USE_TLS = False
-MQTT_USER = "***REMOVED***"
-MQTT_PASS = "***REMOVED***"
+MQTT_USER = ""
+MQTT_PASS = ""
 
 # GPS settings
 GPS_POLL_ENABLE = False
