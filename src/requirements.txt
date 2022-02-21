@@ -10,3 +10,4 @@ SMBus
 RPi.GPIO
 simple-pid
 requests
+tzlocal==2.1
