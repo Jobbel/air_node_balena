@@ -1,5 +1,5 @@
 # air_node
- Software package for a BalenaOS based air quality sensor node featuring cellular networking, 
+ Software package and hardware for a BalenaOS based air quality sensor node featuring cellular networking, 
  MQTT, GPS localisation, local USB drive data logging and support for the following sensors:
  
  - Alphasense OPC-N3 PM Sensor
@@ -14,3 +14,6 @@ Hardware used during developement:
  - USB Stick for local data storage (needs to be vfat formatted and a folder named log_data has to be in the root dir)
 
 Configuration can be done via BalenaCloud environment variables or in src/config_cloudless.py if no cloud will be used.
+
+
+![](hardware/images/hw_overview.PNG)
