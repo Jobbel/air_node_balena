@@ -1,15 +1,20 @@
+from typing import Dict
 import RPi.GPIO
+from simple_pid import PID
 import config
 import prt
-from simple_pid import PID
+
 
 # define custom exceptions describing heater conditions
 class MissingDataException(Exception):
     pass
+
+
 class OverheatingException(Exception):
     pass
 
-class HeatingController(object):
+
+class HeatingController:
     def __init__(self):
         self.heater_power = 0
         self.GPIO = RPi.GPIO
@@ -27,19 +32,19 @@ class HeatingController(object):
         self.pid_t.output_limits = (0, 100)
         self.pid_t.tunings = config.HEATER_PID_TEMP_TUNING
 
-    def updateHeating(self, data):
+    def update_heating(self, data: Dict[str, float]) -> None:
         try:
             inside_humidity = data['opc_humid']
             inside_temperature = data['opc_temp']
             # outside_humidity = data['hyt_humid']
             # outside_temperature = data['hyt_temp']
             # if opc has a fault, dont heat
-            if inside_temperature == 0.00 and inside_humidity == 0.00:
-                prt.global_entity.printOnce("Missing sensor data, disabling heater", "Heater back online")
+            if inside_temperature is None or inside_humidity is None:
+                prt.GLOBAL_ENTITY.print_once("Missing sensor data, disabling heater", "Heater back online")
                 raise MissingDataException
             # if opc temperature is too high dont continue heating
             if inside_temperature > 50:
-                prt.global_entity.printOnce("OPC Overheating, disabling heater", "OPC cooled down, Heater back online")
+                prt.GLOBAL_ENTITY.print_once("OPC Overheating, disabling heater", "OPC cooled down, Heater back online")
                 raise OverheatingException
         except (MissingDataException, OverheatingException):
             self.heater_power = 0
@@ -60,7 +65,8 @@ class HeatingController(object):
                 self.heater_power = 0
         else:
             # Humidity PID
-            if inside_humidity > config.HEATER_PID_HUMID_SETPOINT - 5:  # start pid if we get within 5%H of the setpoint
+            # start pid if we get within 5%H of the setpoint
+            if inside_humidity > config.HEATER_PID_HUMID_SETPOINT - 5:
                 self.pid_h.auto_mode = True
                 pid_h_out = round(self.pid_h(inside_humidity), 2)
                 if config.HEATER_DEBUG:
@@ -69,7 +75,8 @@ class HeatingController(object):
                 self.pid_h.auto_mode = False
                 pid_h_out = 0
             # Temperature PID
-            if inside_temperature < config.HEATER_PID_TEMP_SETPOINT + 5:  # start pid if we get within 5°C of the setpoint
+            # start pid if we get within 5°C of the setpoint
+            if inside_temperature < config.HEATER_PID_TEMP_SETPOINT + 5:
                 self.pid_t.auto_mode = True
                 pid_t_out = round(self.pid_t(inside_temperature), 2)
                 if config.HEATER_DEBUG:
@@ -83,9 +90,9 @@ class HeatingController(object):
 
         self.p.ChangeDutyCycle(self.heater_power)
 
-    def getData(self):
+    def get_data(self) -> Dict[str, int]:
         return {"heater": self.heater_power}
 
-    def stop(self):
+    def stop(self) -> None:
         self.p.stop()
         self.GPIO.cleanup()

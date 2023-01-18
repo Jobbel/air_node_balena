@@ -1,15 +1,17 @@
+from typing import Dict, Any
 import time
-import prt
 import smbus
 import config
+import prt
 from generic_sensor import SensorBase
+
 
 class HYTHandler(SensorBase):
     def __init__(self):
         self.delay = 50.0 / 1000.0  # 50-60 ms delay. Without delay, it doesn't work.
         self.bus = smbus.SMBus(1)  # use /dev/i2c1
 
-    def getData(self):
+    def get_data(self) -> Dict[str, Any]:
         try:
             self.bus.write_byte(config.HYT_ADDRESS, 0x00)  # send some stuff
             time.sleep(self.delay)  # wait a bit
@@ -21,13 +23,13 @@ class HYTHandler(SensorBase):
                                 config.DIGIT_ACCURACY)
 
             # Apply two point calibration
-            humidity = self.calibrate(humidity, config.HYT_CALI_HUMID)
-            temperature = self.calibrate(temperature, config.HYT_CALI_TEMP)
+            humidity = self._calibrate(humidity, config.HYT_CALI_HUMID)
+            temperature = self._calibrate(temperature, config.HYT_CALI_TEMP)
             return {"hyt_humid": humidity, "hyt_temp": temperature}
 
-        except:
-            prt.global_entity.printOnce("HYT disconnected", "HYT back online")
-            return {"hyt_humid": 0, "hyt_temp": 0}
+        except Exception:
+            prt.GLOBAL_ENTITY.print_once("HYT disconnected", "HYT back online")
+            return {"hyt_humid": None, "hyt_temp": None}
 
-    def stop(self):
+    def stop(self) -> None:
         self.bus.close()
