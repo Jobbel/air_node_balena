@@ -11,6 +11,9 @@ class SHTHandler(SensorBase):
         super().__init__()
         self.sensor = SHT31(address=config.SHT_ADDRESS)
         self.counter = 0
+        time.sleep(0.01)
+        self.sensor.set_heater(False)
+        time.sleep(0.01)
 
     def _handle_heater(self) -> None:
         if self.counter == 0:
