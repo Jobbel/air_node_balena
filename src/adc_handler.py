@@ -28,6 +28,9 @@ class ADCHandler(SensorBase):
         a = a_raw * self.mVGain
         return ((w - cali["w0"]) - (n * (a - cali["a0"]))) / cali["sens"]
 
+    def _raw_adc_to_mv(self, adc_raw: float) -> float:
+        return round(adc_raw * self.mVGain, config.DIGIT_ACCURACY)
+
     def get_data(self, temp: int = 20) -> Dict[str, Optional[float]]:
         # The calibration has been done at 20 °C, use it as default
         # Could also be dynamically set by sht_temp
@@ -65,14 +68,14 @@ class ADCHandler(SensorBase):
                 "NO": ppb_no,
                 "NO2": ppb_no2,
                 "O3": ppb_o3,
-                "RAW_ADC_CO_W": values_adc_a[1] * self.mVGain,
-                "RAW_ADC_CO_A": values_adc_a[0] * self.mVGain,
-                "RAW_ADC_NO_W": values_adc_a[3] * self.mVGain,
-                "RAW_ADC_NO_A": values_adc_a[2] * self.mVGain,
-                "RAW_ADC_NO2_W": values_adc_b[1] * self.mVGain,
-                "RAW_ADC_NO2_A": values_adc_b[0] * self.mVGain,
-                "RAW_ADC_O3_W": values_adc_b[3] * self.mVGain,
-                "RAW_ADC_O3_A": values_adc_b[2] * self.mVGain,
+                "RAW_ADC_CO_W": self._raw_adc_to_mv(values_adc_a[1]),
+                "RAW_ADC_CO_A": self._raw_adc_to_mv(values_adc_a[0]),
+                "RAW_ADC_NO_W": self._raw_adc_to_mv(values_adc_a[3]),
+                "RAW_ADC_NO_A": self._raw_adc_to_mv(values_adc_a[2]),
+                "RAW_ADC_NO2_W": self._raw_adc_to_mv(values_adc_b[1]),
+                "RAW_ADC_NO2_A": self._raw_adc_to_mv(values_adc_b[0]),
+                "RAW_ADC_O3_W": self._raw_adc_to_mv(values_adc_b[3]),
+                "RAW_ADC_O3_A": self._raw_adc_to_mv(values_adc_b[2]),
             }
 
         except OSError:

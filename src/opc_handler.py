@@ -107,7 +107,10 @@ class OPCHandler(SensorBase):
                 ret["opc_temp"] = self._calibrate(self.data["Temperature"], config.OPC_CALI_TEMP)
 
                 prefix = "RAW_OPC_"
-                prefixed_data = {prefix + str(key): val for key, val in self.data.items()}
+                prefixed_data = {
+                    prefix + str(key): round(val, config.DIGIT_ACCURACY)
+                    for key, val in self.data.items()
+                }
                 ret.update(prefixed_data)
 
             else:
