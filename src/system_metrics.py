@@ -12,7 +12,6 @@ def get_cpu_temp():
 
 
 def get_cpu_usage():
-    psutil.cpu_percent()
     try:
         return psutil.cpu_percent()
     except Exception:
@@ -56,3 +55,12 @@ def get_total_data_usage():
             pass
     prt.GLOBAL_ENTITY.print_once("Failed to fetch data usage", "Successfully fetching data usage again", 62)
     return 0
+
+
+def get_ram_usage():
+    try:
+        return psutil.virtual_memory().percent
+    except Exception:
+        prt.GLOBAL_ENTITY.print_once("Failed to fetch RAM usage", "Successfully fetching RAM usage again",
+                                     62)
+        return 0
