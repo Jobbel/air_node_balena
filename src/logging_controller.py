@@ -6,7 +6,7 @@ import os
 import threading
 import time
 from logging.handlers import TimedRotatingFileHandler
-from subprocess import STDOUT, check_output
+from subprocess import STDOUT, check_output, run, PIPE
 from multiprocessing import Queue
 import config
 import prt
@@ -35,8 +35,13 @@ class LoggingController:
         self.avg_logger = None
         self.logger_state = "off"
         self.data_queue = Queue()
+        self.rsync_last_runtime = 0
 
         if config.LOGGING_RAW_ENABLE or config.LOGGING_AVG_ENABLE:
+            # save first start timestamp if rsync is enabled
+            if config.LOGGING_RSYNC_ENABLE:
+                print(f"Rsync enabled, copying CSV files to USB every: {config.LOGGING_RSYNC_INTERVAL} seconds")
+                self.rsync_timestamp = time.time()
             # if any logging is enabled, make sure directory exists
             os.makedirs(config.LOGGING_DIRECTORY, exist_ok=True)
             # and start logging thread
@@ -47,13 +52,39 @@ class LoggingController:
     def get_logger_state(self) -> str:
         return self.logger_state
 
+    def get_last_rsync_runtime(self) -> float:
+        # 0 -> never ran before, -1 -> error during rsync, 0< runtime in s
+        return self.rsync_last_runtime
+
+    def get_logger_queue_size(self) -> int:
+        return self.data_queue.qsize()
+
     def log_data_to(self, logger_selector: str, data: Dict[str, Any]) -> None:
         # Save data and where to log it to in Queue as tuple
         self.data_queue.put((logger_selector, data))
 
+    def _handle_rsync(self) -> None:
+        if time.time() - self.rsync_timestamp < config.LOGGING_RSYNC_INTERVAL:
+            return
+        start_timestamp = time.time()
+        cmd = ['rsync', '-ruv', config.LOGGING_DIRECTORY, "/mnt/storage"]
+        try:
+            output = run(cmd, stdout=PIPE, stderr=PIPE, timeout=60)
+            if config.LOGGING_RSYNC_DEBUG:
+                print(output.stdout.decode())
+                print(output.stderr.decode())
+            self.rsync_last_runtime = round(time.time() - start_timestamp, config.DIGIT_ACCURACY)
+        except Exception as e:
+            self.rsync_last_runtime = -1
+            print(f"Rsync failed to run, dump: {e}")
+        self.rsync_timestamp = time.time()
+
     def _logging_worker(self) -> None:
         while True:
             time.sleep(0.2)
+            # Handling rsync here makes sure that no new data is written by the loggers during the copy process
+            if config.LOGGING_RSYNC_ENABLE:
+                self._handle_rsync()
             if self.data_queue.empty():
                 continue
             if os.path.exists(config.LOGGING_DIRECTORY):
@@ -94,7 +125,7 @@ class LoggingController:
         return ret.rstrip(",")  # Remove last comma
 
     def _get_time_since_last_write(self, path: str) -> float:
-        line = check_output(['tail', '-1', path], stderr=STDOUT, timeout=0.5)
+        line = check_output(['tail', '-1', path], stderr=STDOUT, timeout=1)
         last_written_timestamp = float(line.decode("utf-8").split(",")[-3])
         return time.time() - last_written_timestamp
 
@@ -133,7 +164,7 @@ class LoggingController:
         last_write_time = self._get_time_since_last_write(file)
         # print("last write for", logger_selector, round(last_write_time, 2), "seconds ago")
         if last_write_time > 1 and self.data_queue.empty():
-            print(f"last {logger_selector} logger entry is too old, checking usb drive")
+            print(f"last {logger_selector} logger entry is too old, restarting loggers")
             raise OSError
         timeout = 2 if logger_selector == "raw" else 65
         prt.GLOBAL_ENTITY.print_once(f"{logger_selector} logger started",
