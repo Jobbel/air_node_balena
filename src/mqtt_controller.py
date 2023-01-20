@@ -8,9 +8,10 @@ class MQTTController:
 
     def __init__(self):
         self.mqtt_connected = False
-        self.client = mqtt.Client()
+        self.client = mqtt.Client(client_id=config.NODE_ID)
         self.client.on_connect = self._on_connect
         self.client.on_disconnect = self._on_disconnect
+        self.packet_counter = 0
 
         try:
             print("Authenticating with user:", config.MQTT_USER, "on MQTT connection")
@@ -23,11 +24,15 @@ class MQTTController:
             self.client.tls_set()
 
         try:
-            self.client.connect(config.MQTT_SERVER, config.MQTT_PORT, 60)
+            self.client.connect(config.MQTT_SERVER, config.MQTT_PORT)
         except AttributeError:
             print(f"Can't connect to MQTT Broker:{config.MQTT_SERVER} at port:{config.MQTT_PORT}")
 
         self.client.loop_start()  # Start MQTT handling in a new thread
+
+    def get_next_packet_count(self) -> int:
+        self.packet_counter += 1
+        return self.packet_counter
 
     def get_connected(self) -> bool:
         return self.mqtt_connected
@@ -41,6 +46,10 @@ class MQTTController:
         self.mqtt_connected = False
 
     def publish_data(self, data: Dict[str, Any]) -> None:
+        data["tele"]["packet_count"] = self.get_next_packet_count()
         json_data = json.dumps(data, indent=4)
         self.client.publish(config.MQTT_BASE_TOPIC + "/" + config.NODE_ID, json_data, qos=2)
         #print("mqtt publish: ", data)
+
+    def stop(self) -> None:
+        self.client.loop_stop()
