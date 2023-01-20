@@ -16,6 +16,7 @@ from system_metrics import (
     get_disk_usage,
     get_usb_drive_usage,
     get_total_data_usage,
+    get_ram_usage,
 )
 from adc_handler import ADCHandler
 from heating_controller import HeatingController
@@ -27,6 +28,12 @@ from oled_controller import OLEDController
 from opc_handler import OPCHandler
 from prt import OncePrinter
 from sht_handler import SHTHandler
+from internet_watchdog import InternetWatchdog
+
+
+### GLOBAL VARS ###
+# List for storing and averaging sensor data dicts
+minute_data = []
 
 ### GLOBAL INSTANCES ###
 # This scheduler calls the everySecond and everyMinute functions
@@ -35,21 +42,21 @@ scheduler = BlockingScheduler()
 prt.GLOBAL_ENTITY = OncePrinter()
 # This reads gps and signal strength data from the modem periodically
 modem = ModemHandler()
-# This instantiates a mqtt object and tries to connect
-mqtt = MQTTController()
 # This object will log average and raw data to a usb drive
 logg = LoggingController()
-
+# This instantiates a mqtt object and tries to connect if configured
+if config.MQTT_ENABLE:
+    mqtt = MQTTController()
 # Start measurement air heater controller if configured
 if config.HEATER_ENABLE:
     heat = HeatingController()
 # Start oled display controller if configured
 if config.OLED_ENABLE:
     oled = OLEDController()
+# This watchdog keeps the internet connection alive by restarting the modem
+if config.INTERNET_WATCHDOG_ENABLE:
+    watchdog = InternetWatchdog(config.INTERNET_WATCHDOG_INTERVAL)
 
-### GLOBAL VARS ###
-# List for storing and averaging sensor data dicts
-minute_data = []
 
 ### SENSOR INIT ###
 try:
@@ -122,11 +129,14 @@ def generate_publishing_message(mean_data: Dict[str, float]) -> Dict[str, Any]:
             "data_used": get_total_data_usage(),
             "disk_used": get_disk_usage(),
             "usb_used": get_usb_drive_usage(),
+            "ram_usage": get_ram_usage(),
             "cpu_load": get_cpu_usage(),
             "cpu_temp": get_cpu_temp(),
             "uptime": get_uptime(),
             "modem_num": modem.get_mm_number(),
             "logger_state": logg.get_logger_state(),
+            "logger_queue": logg.get_logger_queue_size(),
+            "rsync_runtime": logg.get_last_rsync_runtime(),
         },
     }
     return append_timestamps_to(ret)
@@ -142,7 +152,7 @@ def remove_none_from(data: Dict[str, Any]) -> Dict[str, Any]:
 
 def update_oled_display(data: Dict[str, Any]) -> None:
     data_clean = remove_raw_data_from(data)
-    mqtt_state = mqtt.get_connected()
+    mqtt_state = mqtt.get_connected() if config.MQTT_ENABLE else False
     modem_mm = modem.get_mm_number()
     log_state = logg.get_logger_state()
     oled.update_view(data_clean, mqtt_state, modem_mm, log_state)
@@ -156,8 +166,9 @@ def every_second() -> None:
     if config.OLED_ENABLE and config.OLED_RAW:
         update_oled_display(second_data)
     if config.LOGGING_RAW_ENABLE:
-        # Remove None to get 0 entries in CSV
+        # Remove None (missing sensor data) to get 0 entries in CSV Log
         logg.log_data_to("raw", append_timestamps_to(remove_none_from(second_data)))
+    #mqtt.publish_data(generate_publishing_message(remove_none_from(second_data)))
 
 
 def every_minute() -> None:
@@ -166,7 +177,11 @@ def every_minute() -> None:
     if config.OLED_ENABLE and not config.OLED_RAW:
         update_oled_display(avg_data)
     if config.LOGGING_AVG_ENABLE:
+        # Average data does not contain None, see calculate_mean_data()
         logg.log_data_to("avg", append_timestamps_to(avg_data))
+    #return None
+    if not config.MQTT_ENABLE:
+        return
     if config.PUBLISH_RAW_OPC_AND_ADC:
         mqtt.publish_data(generate_publishing_message(avg_data))
     else:
@@ -191,6 +206,8 @@ def exit_handler(signum: int, _frame: Optional[FrameType]) -> None:
         hyt.stop()
     if config.ADC_ENABLE:
         adc.stop()
+    if config.MQTT_ENABLE:
+        mqtt.stop()
     print("Cleanup completed")
     sys.exit(0)
 
