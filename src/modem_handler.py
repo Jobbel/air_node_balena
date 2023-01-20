@@ -33,16 +33,15 @@ class ModemHandler:
         while True:
             ret = {"lat": None, "lon": None, "alt": None, "rssi": None}
             self._update_modem_number()
-            # time.sleep(1)  # Without these qmicli times out (not true since os update)
+            time.sleep(1)  # Without these qmicli times out
             if self.modem_num != -1:
                 ret.update(self._get_gps_location())
-                # time.sleep(1)  # Without these qmicli times out (not true since os update)
+                time.sleep(1)  # Without these qmicli times out
                 ret["rssi"] = self._get_rssi()
             else:
                 prt.GLOBAL_ENTITY.print_once("GPS disconnected", "GPS back online", 10)
-
             self.current_gps_data = ret
-            time.sleep(1)  # The SIM7600 has a GPS update rate of 1hz
+            time.sleep(1)
 
     def _update_modem_number(self) -> None:
         cmd = "mmcli -L | grep Modem | sed -e 's/\//\ /g' | awk '{print $5}'"
@@ -84,7 +83,7 @@ class ModemHandler:
                 ret['alt'] = float(nmea_data[6])
                 ts = time.strptime(nmea_data[4] + ":" + nmea_data[5], "%d%m%y:%H%M%S.0")
                 self.gps_timestamp = time.mktime(ts)
-                print(f"lat:{ret['lat']}, lon:{ret['lon']}, alt:{ret['alt']}, time:{self.gps_timestamp}")
+                # print(f"lat:{ret['lat']}, lon:{ret['lon']}, alt:{ret['alt']}, time:{self.gps_timestamp}")
             else:
                 raise ValueError
         except Exception:
