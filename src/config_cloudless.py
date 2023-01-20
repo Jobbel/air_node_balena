@@ -3,12 +3,21 @@ NODE_ID = "testnode"
 DIGIT_ACCURACY = 2  # To how many decimal digits should the sensor values be rounded
 PUBLISH_RAW_OPC_AND_ADC = True
 
+# Watchdog settings
+INTERNET_WATCHDOG_ENABLE = True
+INTERNET_WATCHDOG_INTERVAL = 900  # in seconds
+INTERNET_WATCHDOG_MODEM_POWER_PIN = 11  # Pin which can switch modem power
+
 # Logging settings
 LOGGING_RAW_ENABLE = True  # Log sensor data every second
 LOGGING_AVG_ENABLE = True  # Log sensor data every minute
-LOGGING_DIRECTORY = "/data/log_data/"
+LOGGING_DIRECTORY = "/data/log_data/"  # /data/log_data/ for persistent storage on SD, /mnt/storage for USB Drive
+LOGGING_RSYNC_ENABLE = True  # Whether to use rsync to copy files from LOGGING_DIRECTORY to USB Stick regularly
+LOGGING_RSYNC_INTERVAL = 60
+LOGGING_RSYNC_DEBUG = False
 
 # MQTT settings
+MQTT_ENABLE = True
 MQTT_BASE_TOPIC = "airdata"
 MQTT_QOS = 2
 MQTT_SERVER = "aang.ddnss.de"
@@ -18,11 +27,11 @@ MQTT_USER = ""
 MQTT_PASS = ""
 
 # GPS settings
-GPS_POLL_ENABLE = False
+GPS_POLL_ENABLE = True
 
 # HARDWARE SETTINGS
-HEATER_PIN = 12
 HEATER_ENABLE = True  # This should only be enabled if an opc is used
+HEATER_PIN = 12
 HEATER_DEBUG = False  # Enable heater debug messages
 HEATER_PID_ENABLE = True  # Enable PID controllers if True, use 2 point controller if False
 HEATER_PID_TEMP_TUNING = (20, 0.02, 0)  # Has to be positive to counter falling temperature
@@ -31,8 +40,8 @@ HEATER_PID_TEMP_SETPOINT = 15
 HEATER_PID_HUMID_SETPOINT = 50
 
 # Oled settings
-OLED_ADDRESS = 0x3c
 OLED_ENABLE = True
+OLED_ADDRESS = 0x3c
 OLED_RAW = True  # display raw data every second if true or use average data every minute if false
 
 # SENSOR SETTINGS
@@ -47,7 +56,7 @@ OPC_CALI_HUMID = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 # SHT31 settings
 SHT_ENABLE = True
 SHT_ADDRESS = 0x44
-SHT_HEATER_ENABLE = True  # The SHT30 has an internal heater to remove condensation
+SHT_HEATER_ENABLE = True  # The SHT30 has an internal heater to remove condensation, redo calibration if changed
 SHT_CALI_TEMP = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 SHT_CALI_HUMID = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 
