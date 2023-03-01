@@ -12,7 +12,7 @@ class InternetWatchdog:
         self.GPIO.setmode(self.GPIO.BOARD)
         self.GPIO.setwarnings(False)
         self.GPIO.setup(config.INTERNET_WATCHDOG_MODEM_POWER_PIN, self.GPIO.OUT)
-        self.GPIO.output(config.INTERNET_WATCHDOG_MODEM_POWER_PIN, True)
+        self.GPIO.output(config.INTERNET_WATCHDOG_MODEM_POWER_PIN, False)
         self.thread = threading.Thread(target=self._watchdog_worker)
         self.thread.daemon = True
         self.thread.start()
