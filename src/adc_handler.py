@@ -10,8 +10,8 @@ class ADCHandler(SensorBase):
         super().__init__()
         self.adc_a = Adafruit_ADS1x15.ADS1115(address=config.ADC_ADDRESS_A)
         self.adc_b = Adafruit_ADS1x15.ADS1115(address=config.ADC_ADDRESS_B)
-        self.ADCGain = 4
-        self.mVGain = 0.03125
+        self.ADCGain = 2
+        self.mVGain = 0.0625
 
         # Gain table
         #  - 2/3 = +/-6.144V
