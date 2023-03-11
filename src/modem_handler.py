@@ -41,7 +41,7 @@ class ModemHandler:
             else:
                 prt.GLOBAL_ENTITY.print_once("GPS disconnected", "GPS back online", 10)
             self.current_gps_data = ret
-            time.sleep(1)
+            time.sleep(3)
 
     def _update_modem_number(self) -> None:
         cmd = "mmcli -L | grep Modem | sed -e 's/\//\ /g' | awk '{print $5}'"
@@ -71,8 +71,8 @@ class ModemHandler:
                 # At this point we either have no fix or gps has not been enabled yet
                 self.gps_timestamp = "unknown"
                 if not self._enable_gps():
-                    prt.GLOBAL_ENTITY.print_once("no GPS fix", "Error stopped occuring: no GPS fix", 10)
                     time.sleep(5)  # Sleep to avoid spamming qmicli gps enable messages if already enabled
+                    #prt.GLOBAL_ENTITY.print_once("no GPS fix", "Error stopped occuring: no GPS fix", 10)
             elif "CGPSINFO" in nmea_data:
                 # Format: [lat],[N/S],[log],[E/W],[date],[UTC time],[alt],[speed],[course]
                 nmea_data = nmea_data[11:].split(',')  # remove CGPSINFO from the beginning
