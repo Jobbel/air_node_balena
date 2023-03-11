@@ -13,6 +13,7 @@ class InternetWatchdog:
         self.GPIO.setwarnings(False)
         self.GPIO.setup(config.INTERNET_WATCHDOG_MODEM_POWER_PIN, self.GPIO.OUT)
         self.GPIO.output(config.INTERNET_WATCHDOG_MODEM_POWER_PIN, False)
+        print(f"Internet watchdog enabled, checking connection every: {self.interval} seconds")
         self.thread = threading.Thread(target=self._watchdog_worker)
         self.thread.daemon = True
         self.thread.start()
