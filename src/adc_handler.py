@@ -16,7 +16,7 @@ class ADCHandler(SensorBase):
         # Gain table
         #  - 2/3 = +/-6.144V
         #  -   1 = +/-4.096V
-        #  -   2 = +/-2.048V
+        #  -   2 = +/-2.048V -> caps at around 4500ppb CO while retaining 0.1 ppb accuracy
         #  -   4 = +/-1.024V
         #  -   8 = +/-0.512V
         #  -  16 = +/-0.256V
