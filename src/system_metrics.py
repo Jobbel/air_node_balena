@@ -1,4 +1,5 @@
 import datetime
+import os
 import psutil
 import prt
 
@@ -38,6 +39,8 @@ def get_disk_usage():
 
 def get_usb_drive_usage():
     try:
+        if not os.path.ismount('/mnt/storage'):
+            return 0
         return psutil.disk_usage('/mnt/storage').percent
     except Exception:
         prt.GLOBAL_ENTITY.print_once("Failed to fetch USB Drive usage", "Successfully fetching USB Drive usage again",
