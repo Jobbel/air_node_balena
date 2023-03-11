@@ -46,7 +46,7 @@ def get_usb_drive_usage():
 
 
 def get_total_data_usage():
-    for device in ['wwan0', 'wwp1s0u1u3i5', 'wwp1s0u1u4i5', 'ppp0']:
+    for device in ['wwan0', 'wwp1s0u1u1i5', 'wwp1s0u1u3i5', 'wwp1s0u1u4i5', 'ppp0']:
         try:
             netio = psutil.net_io_counters(pernic=True)
             net_usage = netio[device].bytes_sent + netio[device].bytes_recv
