@@ -7,7 +7,7 @@ ID_FS_TYPE=vfat
 
 # Mount USB drive on startup
 mkdir -p $MOUNT_POINT
-mount -v -t $ID_FS_TYPE -o rw $DEVNAME $MOUNT_POINT
+mount -v -o rw $DEVNAME $MOUNT_POINT
 
 # Start main program
 python -u /usr/src/app/main.py
