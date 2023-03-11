@@ -111,11 +111,11 @@ def append_timestamps_to(data: Dict[str, Any]) -> Dict[str, Any]:
 
 def generate_publishing_message(mean_data: Dict[str, float]) -> Dict[str, Any]:
     # move these 5 averaged telemetry entries from data to tele
-    heater_buffer = mean_data.pop("heater")
-    lat_buffer = mean_data.pop("lat")
-    lon_buffer = mean_data.pop("lon")
-    alt_buffer = mean_data.pop("alt")
-    rssi_buffer = mean_data.pop("rssi")
+    heater_buffer = mean_data.pop("heater", 0)
+    lat_buffer = mean_data.pop("lat", 0)
+    lon_buffer = mean_data.pop("lon", 0)
+    alt_buffer = mean_data.pop("alt", 0)
+    rssi_buffer = mean_data.pop("rssi", 0)
     # now there is only averaged sensor data in mean_data
     ret = {
         "node_id": config.NODE_ID,
