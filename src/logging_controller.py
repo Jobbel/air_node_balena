@@ -68,7 +68,8 @@ class LoggingController:
             return
         if not os.path.ismount('/mnt/storage'):
             prt.GLOBAL_ENTITY.print_once(f"USB stick is not mounted, skipping rsync", "", config.LOGGING_RSYNC_INTERVAL + 2)
-            print("USB stick is not mounted, skipping rsync.")
+            self.rsync_last_runtime = -1
+            self.rsync_timestamp = time.time()
             return
         start_timestamp = time.time()
         cmd = ['rsync', '-ruv', config.LOGGING_DIRECTORY, "/mnt/storage"]
