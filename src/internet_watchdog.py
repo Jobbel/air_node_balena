@@ -32,7 +32,7 @@ class InternetWatchdog:
         self.GPIO.output(config.INTERNET_WATCHDOG_MODEM_POWER_PIN, False)
 
     # Adopted from: https://stackoverflow.com/questions/3764291
-    def _internet_connected(self, host: str = "8.8.8.8", port: int = 53, timeout: int = 3) -> bool:
+    def _internet_connected(self, host: str = "1.1.1.1", port: int = 53, timeout: int = 10) -> bool:
         try:
             socket.setdefaulttimeout(timeout)
             socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
