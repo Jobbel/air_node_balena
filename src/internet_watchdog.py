@@ -3,11 +3,14 @@ import time
 import threading
 import RPi.GPIO
 import config
-
+from typing import Type
+from modem_handler import ModemHandler
 
 class InternetWatchdog:
-    def __init__(self, interval: int = 60 * 60):
+    def __init__(self, interval: int = 60 * 60, modem_handler_instance: Type[ModemHandler] = None):
         self.interval = interval
+        self.modem_handler_instance = modem_handler_instance
+        self.error_counter = 0
         self.GPIO = RPi.GPIO
         self.GPIO.setmode(self.GPIO.BOARD)
         self.GPIO.setwarnings(False)
@@ -18,12 +21,17 @@ class InternetWatchdog:
         self.thread.daemon = True
         self.thread.start()
 
+    def get_error_count(self) -> int:
+        return self.error_counter
+
     def _watchdog_worker(self) -> None:
         while True:
             time.sleep(self.interval)
-            if self._internet_connected():
+            if self._internet_connected() and self.modem_handler_instance.get_mm_number() != -1:
+                self.error_counter = 0
                 continue
-            print("No Internet connection found, restarting Modem")
+            self.error_counter += 1
+            print(f"No Internet connection / Modem found, restarting Modem. Counter:{self.error_counter}")
             self._restart_modem()
 
     def _restart_modem(self) -> None:

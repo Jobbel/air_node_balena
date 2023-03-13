@@ -55,7 +55,7 @@ if config.OLED_ENABLE:
     oled = OLEDController()
 # This watchdog keeps the internet connection alive by restarting the modem
 if config.INTERNET_WATCHDOG_ENABLE:
-    watchdog = InternetWatchdog(config.INTERNET_WATCHDOG_INTERVAL)
+    watchdog = InternetWatchdog(interval=config.INTERNET_WATCHDOG_INTERVAL, modem_handler_instance=modem)
 
 
 ### SENSOR INIT ###
@@ -168,7 +168,6 @@ def every_second() -> None:
     if config.LOGGING_RAW_ENABLE:
         # Remove None (missing sensor data) to get 0 entries in CSV Log
         logg.log_data_to("raw", append_timestamps_to(remove_none_from(second_data)))
-    #mqtt.publish_data(generate_publishing_message(remove_none_from(second_data)))
 
 
 def every_minute() -> None:
@@ -179,7 +178,6 @@ def every_minute() -> None:
     if config.LOGGING_AVG_ENABLE:
         # Average data does not contain None, see calculate_mean_data()
         logg.log_data_to("avg", append_timestamps_to(avg_data))
-    #return None
     if not config.MQTT_ENABLE:
         return
     if config.PUBLISH_RAW_OPC_AND_ADC:
