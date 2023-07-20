@@ -46,6 +46,7 @@ try:
     # Oled settings
     OLED_ENABLE = os.environ['OLED_ENABLE'] in 'True'
     OLED_ADDRESS = int(os.environ['OLED_ADDRESS'], 16)
+    OLED_PORT = int(os.environ['OLED_PORT'])
     OLED_RAW = os.environ['OLED_RAW'] in 'True'  # display raw data every second if true or use average data every minute if false
 
     # SENSOR SETTINGS

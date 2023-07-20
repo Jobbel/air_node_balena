@@ -23,7 +23,7 @@ class OLEDController:
                 self.startup_phase = True
                 self.list_entry_amount = 19
 
-                self.serial = i2c(port=6, address=config.OLED_ADDRESS)
+                self.serial = i2c(port=config.OLED_PORT, address=config.OLED_ADDRESS)
                 self.device = ssd1306(self.serial, height=64, rotate=0)
                 self.virtual = viewport(self.device, width=128, height=768)
 
@@ -35,9 +35,9 @@ class OLEDController:
                     draw.text((28, 20), text="version 0.1", fill="white")
                     draw.text((15, 35), text="hostname:" + hostname, fill="white")
                     draw.text((23, 50), text="startup phase", fill="white")
-                print("OLED connected to i2c6 on address:", hex(config.OLED_ADDRESS))
+                print(f"OLED connected to i2c port: {config.OLED_PORT} on address: {hex(config.OLED_ADDRESS)}")
             except Exception:
-                print("No OLED display found on i2c6 address", hex(config.OLED_ADDRESS))
+                print(f"No OLED display found on i2c port: {config.OLED_PORT} on address: {hex(config.OLED_ADDRESS)}")
 
     def _oled_worker(self) -> None:
         while True:

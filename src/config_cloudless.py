@@ -13,7 +13,7 @@ LOGGING_RAW_ENABLE = True  # Log sensor data every second
 LOGGING_AVG_ENABLE = True  # Log sensor data every minute
 LOGGING_DIRECTORY = "/data/log_data/"  # /data/log_data/ for persistent storage on SD, /mnt/storage for USB Drive
 LOGGING_RSYNC_ENABLE = True  # Whether to use rsync to copy files from LOGGING_DIRECTORY to USB Stick regularly
-LOGGING_RSYNC_INTERVAL = 60
+LOGGING_RSYNC_INTERVAL = 600  # in seconds
 LOGGING_RSYNC_DEBUG = False
 
 # MQTT settings
@@ -42,6 +42,7 @@ HEATER_PID_HUMID_SETPOINT = 50
 # Oled settings
 OLED_ENABLE = True
 OLED_ADDRESS = 0x3c
+OLED_PORT = 11  # pi4 use port 6, pi3 use port 11 and dtoverlay
 OLED_RAW = True  # display raw data every second if true or use average data every minute if false
 
 # SENSOR SETTINGS
