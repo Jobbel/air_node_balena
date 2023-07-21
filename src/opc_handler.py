@@ -20,7 +20,9 @@ class OPCHandler(SensorBase):
         self.alphasense = None
         # this event is used to request data from outside the thread
         self.request_data = threading.Event()
-        # used to pass data from runner thread to getData
+        # this event is used to indicate ready data from within the thread
+        self.data_ready = threading.Event()
+        # used to pass data from runner thread to get_data
         self.data = None
 
         self.thread = threading.Thread(target=self._opc_worker)
@@ -36,11 +38,10 @@ class OPCHandler(SensorBase):
                 self.alphasense.on()
                 time.sleep(1)
                 self.connected = True
-            elif self.request_data.is_set():
+            elif self.request_data.wait(timeout=0.01):
                 self.data = self.alphasense.histogram(number_concentration=False)
                 self.request_data.clear()
-            else:
-                time.sleep(0.01)  # This keeps CPU usage from always hitting 100%
+                self.data_ready.set()
 
     def get_data(self) -> Dict[str, Optional[float]]:
         ret = {
@@ -95,9 +96,9 @@ class OPCHandler(SensorBase):
         }
 
         if self.connected:
+            self.data_ready.clear()
             self.request_data.set()
-            time.sleep(0.1)
-            if self.data is not None and not self.request_data.is_set():
+            if self.data_ready.wait(timeout=0.5):
                 ret["pm1"] = round(self.data["PM1"], config.DIGIT_ACCURACY)
                 ret["pm25"] = round(self.data["PM2.5"], config.DIGIT_ACCURACY)
                 ret["pm10"] = round(self.data["PM10"], config.DIGIT_ACCURACY)
