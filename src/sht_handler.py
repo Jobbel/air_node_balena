@@ -11,9 +11,6 @@ class SHTHandler(SensorBase):
         super().__init__()
         self.sensor = SHT31(address=config.SHT_ADDRESS)
         self.counter = 0
-        time.sleep(0.01)
-        self.sensor.set_heater(False)
-        time.sleep(0.01)
 
     def _handle_heater(self) -> None:
         if self.counter == 0:
@@ -32,7 +29,9 @@ class SHTHandler(SensorBase):
         try:
             if config.SHT_HEATER_ENABLE:
                 self._handle_heater()
-                time.sleep(0.01)  # If we don't wait here, i2c fails for some reason
+            else:
+                self.sensor.set_heater(False)
+            time.sleep(0.01)  # If we don't wait here, i2c fails for some reason
 
             (temp, humid) = self.sensor.read_temperature_humidity()
 
