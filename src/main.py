@@ -91,7 +91,7 @@ def get_all_data() -> Dict[str, float]:
     return ret
 
 
-def calculate_mean_data(collected_data: List[Dict[str, float]]) -> Dict[str, float]:
+def calculate_mean_data(collected_data: List[Dict[str, float]]) -> Optional[Dict[str, float]]:
     try:
         mean_df = pd.DataFrame(collected_data).mean()
         ret = mean_df.fillna(0).to_dict()
