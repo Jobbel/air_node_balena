@@ -92,8 +92,12 @@ def get_all_data() -> Dict[str, float]:
 
 
 def calculate_mean_data(collected_data: List[Dict[str, float]]) -> Dict[str, float]:
-    mean_df = pd.DataFrame(collected_data).mean()
-    ret = mean_df.fillna(0).to_dict()
+    try:
+        mean_df = pd.DataFrame(collected_data).mean()
+        ret = mean_df.fillna(0).to_dict()
+    except ValueError as e:
+        print(f"Averaging minute data failed, skipping this minute. Error dump: {e}")
+        return None
     # Make sure lat/lon coordinates have 6 decimal digits while the rest has the configured amount
     return {
         key: round(val, config.DIGIT_ACCURACY if key not in ["lat", "lon"] else 6)
@@ -173,6 +177,8 @@ def every_second() -> None:
 def every_minute() -> None:
     avg_data = calculate_mean_data(minute_data)
     minute_data.clear()
+    if avg_data is None:
+        return
     if config.OLED_ENABLE and not config.OLED_RAW:
         update_oled_display(avg_data)
     if config.LOGGING_AVG_ENABLE:
