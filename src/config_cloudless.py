@@ -42,7 +42,7 @@ HEATER_PID_HUMID_SETPOINT = 50
 # Oled settings
 OLED_ENABLE = True
 OLED_ADDRESS = 0x3c
-OLED_PORT = 11  # pi4 use port 6, pi3 use port 11 and dtoverlay
+OLED_PORT = 11  # pi4 use port 6, pi3 use port 11 and dtoverlay: "vc4-fkms-v3d","i2c-gpio,i2c_gpio_sda=22,i2c_gpio_scl=23"
 OLED_RAW = True  # display raw data every second if true or use average data every minute if false
 
 # SENSOR SETTINGS
@@ -57,7 +57,7 @@ OPC_CALI_HUMID = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 # SHT31 settings
 SHT_ENABLE = True
 SHT_ADDRESS = 0x44
-SHT_HEATER_ENABLE = True  # The SHT30 has an internal heater to remove condensation, redo calibration if changed
+SHT_HEATER_ENABLE = False  # The SHT30 has an internal heater to remove condensation, redo calibration if changed
 SHT_CALI_TEMP = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 SHT_CALI_HUMID = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 
