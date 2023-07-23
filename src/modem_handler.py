@@ -33,10 +33,10 @@ class ModemHandler:
         while True:
             ret = {"lat": None, "lon": None, "alt": None, "rssi": None}
             self._update_modem_number()
-            time.sleep(1)  # Without these qmicli times out
+            time.sleep(2)  # Without these qmicli times out
             if self.modem_num != -1:
                 ret.update(self._get_gps_location())
-                time.sleep(1)  # Without these qmicli times out
+                time.sleep(2)  # Without these qmicli times out
                 ret["rssi"] = self._get_rssi()
             else:
                 prt.GLOBAL_ENTITY.print_once("GPS disconnected", "GPS back online", 10)
@@ -70,6 +70,7 @@ class ModemHandler:
             if ",,,,,,,," in nmea_data:
                 # At this point we either have no fix or gps has not been enabled yet
                 self.gps_timestamp = "unknown"
+                time.sleep(2)
                 if not self._enable_gps():
                     time.sleep(5)  # Sleep to avoid spamming qmicli gps enable messages if already enabled
                     #prt.GLOBAL_ENTITY.print_once("no GPS fix", "Error stopped occuring: no GPS fix", 10)
