@@ -25,6 +25,7 @@ from logging_controller import LoggingController
 from modem_handler import ModemHandler
 from mqtt_controller import MQTTController
 from oled_controller import OLEDController
+from one_wire_handler import OneWireHandler
 from opc_handler import OPCHandler
 from prt import OncePrinter
 from sht_handler import SHTHandler
@@ -68,9 +69,12 @@ try:
         hyt = HYTHandler()
     if config.ADC_ENABLE:
         adc = ADCHandler()
+    if config.ONE_WIRE_ENABLE:
+        one_wire = OneWireHandler()
     print("Sensor startup successful")
 except Exception as e:
     print(f"Sensor startup failed, dump: {e}")
+    sys.exit()
 
 
 def get_all_data() -> Dict[str, float]:
@@ -84,6 +88,8 @@ def get_all_data() -> Dict[str, float]:
         ret.update(hyt.get_data())
     if config.ADC_ENABLE:
         ret.update(adc.get_data())
+    if config.ONE_WIRE_ENABLE:
+        ret.update(one_wire.get_data())
     # get telemetry
     if config.HEATER_ENABLE:
         ret.update(heat.get_data())
@@ -210,6 +216,8 @@ def exit_handler(signum: int, _frame: Optional[FrameType]) -> None:
         hyt.stop()
     if config.ADC_ENABLE:
         adc.stop()
+    if config.ONE_WIRE_ENABLE:
+        one_wire.stop()
     if config.MQTT_ENABLE:
         mqtt.stop()
     print("Cleanup completed")

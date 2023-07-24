@@ -11,6 +11,7 @@ RPi.GPIO
 simple-pid
 numpy
 pandas
+w1thermsensor
 
 # known working versions with bullseye:
 

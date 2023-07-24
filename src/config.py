@@ -65,6 +65,11 @@ try:
     SHT_CALI_TEMP = literal_eval(os.environ.get("SHT_CALI_TEMP"))
     SHT_CALI_HUMID = literal_eval(os.environ.get("SHT_CALI_HUMID"))
 
+    # ONE WIRE settings (DS18B20 on heater)
+    ONE_WIRE_ENABLE = os.environ['ONE_WIRE_ENABLE'] in 'True'  # Has to be enabled and connected if heater is used
+    ONE_WIRE_DS_ID = os.environ['ONE_WIRE_DS_ID']  # Address string like 01145c262cc5 if multiple sensors are used, use "auto" to autodetect
+    ONE_WIRE_DS_RESOLUTION = int(os.environ['ONE_WIRE_DS_RESOLUTION']) # 12bit -> 800ms, 11bit -> 400ms, 10 bit -> 200ms, 9bit -> 100ms conversion time, 0 to use default
+
     # HYT sensor settings
     HYT_ENABLE = os.environ['HYT_ENABLE'] in 'True'
     HYT_ADDRESS = int(os.environ['HYT_ADDRESS'], 16)

@@ -69,6 +69,7 @@ class OLEDController:
             "NO": "ppb",
             "NO2": "ppb",
             "O3": "ppb",
+            "heater_temp": "°C",
             "heater": "%",
             "lat": "°",
             "lon": "°",

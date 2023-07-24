@@ -61,6 +61,12 @@ SHT_HEATER_ENABLE = False  # The SHT30 has an internal heater to remove condensa
 SHT_CALI_TEMP = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 SHT_CALI_HUMID = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 
+# ONE WIRE settings (DS18B20 on heater)
+ONE_WIRE_ENABLE = True  # Has to be enabled and connected if heater control is used
+ONE_WIRE_DS_ID = "auto"  # Address string like 01145c262cc5 if multiple sensors are used, use "auto" to autodetect
+ONE_WIRE_DS_RESOLUTION = 12 # 12bit -> 800ms, 11bit -> 400ms, 10 bit -> 200ms, 9bit -> 100ms conversion time, 0 to use default
+ONE_WIRE_DS_CALI = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
+
 # HYT sensor settings
 HYT_ENABLE = False
 HYT_ADDRESS = 0x28
