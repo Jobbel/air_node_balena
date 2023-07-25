@@ -84,7 +84,7 @@ class PIDAutoTuner:
         time_diff = self.peaks[pos][1] - self.peaks[pos-2][1]
         # Use Astrom-Hagglund method to estimate Ku and Tu
         amplitude = .5 * abs(temp_diff)
-        Ku = 4. * 1 / (math.pi * amplitude)
+        Ku = 4. * 100 / (math.pi * amplitude)
         Tu = time_diff
         # Use Ziegler-Nichols method to generate PID parameters
         Ti = 0.5 * Tu
