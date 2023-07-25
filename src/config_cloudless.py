@@ -32,11 +32,11 @@ GPS_POLL_ENABLE = True
 # HARDWARE SETTINGS
 HEATER_ENABLE = True  # This should only be enabled if an opc is used
 HEATER_PIN = 12
-HEATER_DEBUG = False  # Enable heater debug messages
+HEATER_DEBUG = True  # Enable heater debug messages
 HEATER_PID_ENABLE = True  # Enable PID controllers if True, use 2 point controller if False
-HEATER_PID_TEMP_TUNING = (20, 0.02, 0)  # Has to be positive to counter falling temperature
+HEATER_PID_TEMP_TUNING = (20, 0.1, 0)  # Has to be positive to counter falling temperature
 HEATER_PID_HUMID_TUNING = (-20, -0.02, -0)  # Has to be negative to counter rising humidity
-HEATER_PID_TEMP_SETPOINT = 15
+HEATER_PID_TEMP_SETPOINT = 20
 HEATER_PID_HUMID_SETPOINT = 50
 
 # Oled settings

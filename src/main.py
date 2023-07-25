@@ -76,6 +76,8 @@ except Exception as e:
     print(f"Sensor startup failed, dump: {e}")
     sys.exit()
 
+time.sleep(10)  # Wait for all sensors to come online
+
 
 def get_all_data() -> Dict[str, float]:
     ret = {}
