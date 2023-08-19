@@ -30,7 +30,7 @@ class MQTTController:
 
         self.client.loop_start()  # Start MQTT handling in a new thread
 
-    def get_next_packet_count(self) -> int:
+    def _get_next_packet_count(self) -> int:
         self.packet_counter += 1
         return self.packet_counter
 
@@ -46,7 +46,7 @@ class MQTTController:
         self.mqtt_connected = False
 
     def publish_data(self, data: Dict[str, Any]) -> None:
-        data["tele"]["packet_count"] = self.get_next_packet_count()
+        data["tele"]["packet_count"] = self._get_next_packet_count()
         json_data = json.dumps(data, indent=4)
         self.client.publish(config.MQTT_BASE_TOPIC + "/" + config.NODE_ID, json_data, qos=2)
         #print("mqtt publish: ", data)
