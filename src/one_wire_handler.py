@@ -28,7 +28,11 @@ class OneWireHandler(SensorBase):
         print(f"Detected: {self.sensor_count} Sensor/s on the 1-Wire Bus")
         if self.sensor_count == 0:
             # no need to continue if there is no sensor connected
+            print("No heater temperature sensor detected, please check the connection")
             return
+        
+        # TODO: remove this for production
+        self.enable_thermocouple = self.sensor_count > 1
         
         for sensor in self.available_sensors:
             try:
@@ -42,6 +46,7 @@ class OneWireHandler(SensorBase):
             self.sensor = W1ThermSensor()
         else:
             # Use configured id
+            # TODO: check if configured id is actually connected an in available_sensors
             self.sensor = W1ThermSensor(sensor_id=config.ONE_WIRE_DS_ID)
 
         # Set Resolution
@@ -53,7 +58,9 @@ class OneWireHandler(SensorBase):
 
         print(f"Using 1-Wire Sensor with ID: {self.sensor.id} and resolution: {self.sensor.get_resolution()} bit for heater control")
         
-        self.thermocouple_sensor = W1ThermSensor(sensor_id="0d4c0f496ba6")
+        if self.enable_thermocouple:
+            self.thermocouple_sensor = W1ThermSensor(sensor_id="0d4c0f496ba6")
+            print("Using thermocouple temperature sensor")
 
         self.thread = threading.Thread(target=self._one_wire_worker)
         self.thread.daemon = True
@@ -65,30 +72,37 @@ class OneWireHandler(SensorBase):
                 try:
                     self.temperature = self.sensor.get_temperature()
                     self.last_temperature_reading = time.time()
-                    self.thermocouple_temperature = self.thermocouple_sensor.get_temperature()
+                    if self.enable_thermocouple:
+                        self.thermocouple_temperature = self.thermocouple_sensor.get_temperature()
+                    self.request_data.clear()
                 except (NoSensorFoundError, SensorNotReadyError, ResetValueError):
-                    pass
-                self.request_data.clear()
+                    time.sleep(0.5)
 
     def get_data(self) -> Dict[str, Any]:
         try:
             # if the sensor has not beed read in the last 2 seconds consider it to be disconnected
-            if time.time() - self.last_temperature_reading > 3 and self.get_data_called:
+            if time.time() - self.last_temperature_reading > 6 and self.get_data_called:
+                self.request_data.set()
                 raise Exception  # DS18B20 did not finish temperature measurement in time.
             self.get_data_called = True
 
             temperature = self.temperature
-            thermocouple_temperature = self.thermocouple_temperature
+            if self.enable_thermocouple:
+                thermocouple_temperature = self.thermocouple_temperature
             self.request_data.set()
 
             # Apply two point calibration
             temperature = self._calibrate(temperature, config.ONE_WIRE_DS_CALI)
-            thermocouple_temperature = self._calibrate(thermocouple_temperature, config.ONE_WIRE_DS_CALI)
-            return {"heater_temp": temperature, "air_temp": thermocouple_temperature}
+            if self.enable_thermocouple:
+                thermocouple_temperature = self._calibrate(thermocouple_temperature, config.ONE_WIRE_DS_CALI)
+                return {"heater_temp": temperature, "air_temp": thermocouple_temperature}
+            return {"heater_temp": temperature}
 
         except Exception as e:
-            prt.GLOBAL_ENTITY.print_once("Heater Temperature Sensor disconnected", "Heater Temperature Sensor back online")
-            return {"heater_temp": None, "air_temp": None}
+            prt.GLOBAL_ENTITY.print_once(f"Heater Temperature Sensor disconnected, dump: {e}", f"Heater Temperature Sensor back online, dump: {e}")
+            if self.enable_thermocouple:
+                return {"heater_temp": None, "air_temp": None}
+            return {"heater_temp": None}
 
     def stop(self) -> None:
         pass
