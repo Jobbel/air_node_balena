@@ -33,15 +33,15 @@ class ModemHandler:
         while True:
             ret = {"lat": None, "lon": None, "alt": None, "rssi": None}
             self._update_modem_number()
-            time.sleep(2)  # Without these qmicli times out
+            time.sleep(0.1)  # Without these qmicli times out
             if self.modem_num != -1:
                 ret.update(self._get_gps_location())
-                time.sleep(2)  # Without these qmicli times out
+                time.sleep(0.1)  # Without these qmicli times out
                 ret["rssi"] = self._get_rssi()
             else:
                 prt.GLOBAL_ENTITY.print_once("GPS disconnected", "GPS back online", 10)
             self.current_gps_data = ret
-            time.sleep(3)
+            time.sleep(1)
 
     def _update_modem_number(self) -> None:
         cmd = "mmcli -L | grep Modem | sed -e 's/\//\ /g' | awk '{print $5}'"
@@ -79,8 +79,13 @@ class ModemHandler:
                 nmea_data = nmea_data[11:].split(',')  # remove CGPSINFO from the beginning
                 raw_lat = str(nmea_data[0])
                 raw_lon = str(nmea_data[2])
-                ret['lat'] = round((float(raw_lat[0:2]) + (float(raw_lat[2:9]) / 60)), 6)
-                ret['lon'] = round((float(raw_lon[0:3]) + (float(raw_lon[3:10]) / 60)), 6)
+                # The modem sometimes delivers wrong lat or lon data, check and ignore this case.
+                if len(raw_lat) != 11 or len(raw_lon) != 12:
+                    self.gps_timestamp = "unknown"
+                    print("received faulty lat/lon data from modem")
+                    return ret
+                ret['lat'] = round((float(raw_lat[0:2]) + (float(raw_lat[2:11]) / 60)), 6)
+                ret['lon'] = round((float(raw_lon[0:3]) + (float(raw_lon[3:12]) / 60)), 6)
                 ret['alt'] = float(nmea_data[6])
                 ts = time.strptime(nmea_data[4] + ":" + nmea_data[5], "%d%m%y:%H%M%S.0")
                 self.gps_timestamp = time.mktime(ts)
