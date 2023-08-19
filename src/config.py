@@ -37,11 +37,11 @@ try:
     HEATER_ENABLE = os.environ['HEATER_ENABLE'] in 'True'  # This should only be enabled if an opc is used
     HEATER_PIN = int(os.environ['HEATER_PIN'])
     HEATER_DEBUG = os.environ['HEATER_DEBUG'] in 'True'  # Enable heater debug messages
-    HEATER_PID_ENABLE = os.environ['HEATER_PID_ENABLE'] in 'True'  # Enable PID controllers if True, use 2 point controller if False
     HEATER_PID_TEMP_TUNING = literal_eval(os.environ.get("HEATER_PID_TEMP_TUNING"))
-    HEATER_PID_HUMID_TUNING = literal_eval(os.environ.get("HEATER_PID_HUMID_TUNING"))
-    HEATER_PID_TEMP_SETPOINT = int(os.environ['HEATER_PID_TEMP_SETPOINT'])
-    HEATER_PID_HUMID_SETPOINT = int(os.environ['HEATER_PID_HUMID_SETPOINT'])
+
+    HEATER_PID_AUTOTUNER_ENABLE = os.environ['HEATER_PID_AUTOTUNER_ENABLE'] in 'True'  # This runs a PID Autotuning sequence if enabled, disable this for normal operation
+    HEATER_PID_AUTOTUNER_CALIBRATION_TEMPERATURE = float(os.environ['HEATER_PID_AUTOTUNER_CALIBRATION_TEMPERATURE'])  # This is the temperature at which te autotuning will be done, This temperature should be where the controller will be run at most of the time
+    HEATER_PID_AUTOTUNER_RELAY_HYSTERESIS_DELTA = float(os.environ['HEATER_PID_AUTOTUNER_RELAY_HYSTERESIS_DELTA'])  # delta for the oscillation amplitude, lower values yield more aggressive less robust control parameters
 
     # Oled settings
     OLED_ENABLE = os.environ['OLED_ENABLE'] in 'True'
@@ -69,6 +69,7 @@ try:
     ONE_WIRE_ENABLE = os.environ['ONE_WIRE_ENABLE'] in 'True'  # Has to be enabled and connected if heater is used
     ONE_WIRE_DS_ID = os.environ['ONE_WIRE_DS_ID']  # Address string like 01145c262cc5 if multiple sensors are used, use "auto" to autodetect
     ONE_WIRE_DS_RESOLUTION = int(os.environ['ONE_WIRE_DS_RESOLUTION']) # 12bit -> 800ms, 11bit -> 400ms, 10 bit -> 200ms, 9bit -> 100ms conversion time, 0 to use default
+    ONE_WIRE_DS_CALI = literal_eval(os.environ.get("ONE_WIRE_DS_CALI"))
 
     # HYT sensor settings
     HYT_ENABLE = os.environ['HYT_ENABLE'] in 'True'

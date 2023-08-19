@@ -32,12 +32,12 @@ GPS_POLL_ENABLE = True
 # HARDWARE SETTINGS
 HEATER_ENABLE = True  # This should only be enabled if an opc is used
 HEATER_PIN = 12
-HEATER_DEBUG = True  # Enable heater debug messages
-HEATER_PID_ENABLE = True  # Enable PID controllers if True, use 2 point controller if False
+HEATER_DEBUG = False  # Enable heater debug messages
 HEATER_PID_TEMP_TUNING = (20, 0.1, 0)  # Has to be positive to counter falling temperature
-HEATER_PID_HUMID_TUNING = (-20, -0.02, -0)  # Has to be negative to counter rising humidity
-HEATER_PID_TEMP_SETPOINT = 20
-HEATER_PID_HUMID_SETPOINT = 50
+
+HEATER_PID_AUTOTUNER_ENABLE = False  # This runs a PID Autotuning sequence if enabled, disable this for normal operation
+HEATER_PID_AUTOTUNER_CALIBRATION_TEMPERATURE = 42  # This is the temperature at which te autotuning will be done, This temperature should be where the controller will be run at most of the time
+HEATER_PID_AUTOTUNER_RELAY_HYSTERESIS_DELTA = 3.5  # delta for the oscillation amplitude, lower values yield more aggressive less robust control parameters
 
 # Oled settings
 OLED_ENABLE = True
@@ -63,7 +63,7 @@ SHT_CALI_HUMID = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 
 # ONE WIRE settings (DS18B20 on heater)
 ONE_WIRE_ENABLE = True  # Has to be enabled and connected if heater control is used
-ONE_WIRE_DS_ID = "auto"  # Address string like 01145c262cc5 if multiple sensors are used, use "auto" to autodetect
+ONE_WIRE_DS_ID = "auto"  # Address string like 01145c262cc5, use "auto" to autodetect
 ONE_WIRE_DS_RESOLUTION = 12 # 12bit -> 800ms, 11bit -> 400ms, 10 bit -> 200ms, 9bit -> 100ms conversion time, 0 to use default
 ONE_WIRE_DS_CALI = {"raw_low": 0, "raw_high": 1, "ref_low": 0, "ref_high": 1}
 
