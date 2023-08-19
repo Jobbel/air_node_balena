@@ -87,9 +87,9 @@ class ModemHandler:
                 # print(f"lat:{ret['lat']}, lon:{ret['lon']}, alt:{ret['alt']}, time:{self.gps_timestamp}")
             else:
                 raise ValueError
-        except Exception:
+        except Exception as e:
             self.gps_timestamp = "unknown"
-            prt.GLOBAL_ENTITY.print_once("Failed to get GPS data", "Error stopped occuring: Failed to get GPS data", 10)
+            prt.GLOBAL_ENTITY.print_once(f"Failed to get GPS data, dump: {e}", f"Error stopped occuring: Failed to get GPS data, dump: {e}", 10)
         return ret
 
     def _get_rssi(self) -> Optional[int]:
@@ -97,9 +97,9 @@ class ModemHandler:
         try:
             ret = check_output(cmd, shell=True, stderr=STDOUT, timeout=1).decode("utf-8")
             return self._convert_ss_to_rssi(int(ret.strip().split("response: '+CSQ: ")[1].split(",")[0]))
-        except Exception:
-            prt.GLOBAL_ENTITY.print_once("Failed to get signal strength data",
-                                        "Error stopped occuring: Failed to get signal strength data", 10)
+        except Exception as e:
+            prt.GLOBAL_ENTITY.print_once(f"Failed to get signal strength data, dump: {e}",
+                                        f"Error stopped occuring: Failed to get signal strength data, dump: {e}", 10)
             return None
 
     def _convert_ss_to_rssi(self, ss: int) -> Optional[int]:
