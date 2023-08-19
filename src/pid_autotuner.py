@@ -1,9 +1,18 @@
 import time
 import math
 
+
 class PIDAutoTuner:
-    def __init__(self, calibration_temperature) -> None:
+    # Heavily inspired by the klipper PID_CALIBRATE command implementation
+    def __init__(self, calibration_temperature: float = 42, relay_hysteresis_delta: float = 3.5) -> None:
+        """
+        :calibration_temperature: in °C, around which temperature the relay oscillation occurs
+        This temperature should be where the controller will be run at most of the time
+        :relay_hysteresis_delta: in °C, when the relay turns on and off -> oscillation amplitude
+        Lower relay_hysteresis_deltas yield more aggressive less robust control parameters
+        """
         self.calibration_temperature = calibration_temperature
+        self.relay_hysteresis_delta = relay_hysteresis_delta
         self._param_init()
 
     def _param_init(self):
@@ -31,7 +40,7 @@ class PIDAutoTuner:
         if self.heating and current_temp >= self.target_temp:
             self.heating = False
             self._check_peaks()
-            self.target_temp = self.calibration_temperature - 3.5
+            self.target_temp = self.calibration_temperature - self.relay_hysteresis_delta
         elif not self.heating and current_temp <= self.target_temp:
             self.heating = True
             self._check_peaks()
@@ -74,7 +83,7 @@ class PIDAutoTuner:
             return
         self._calc_pid(len(self.peaks)-1)
 
-    def _calc_pid(self, pos):
+    def _calc_pid(self, pos: int):
         temp_diff = self.peaks[pos][0] - self.peaks[pos-1][0]
         time_diff = self.peaks[pos][1] - self.peaks[pos-2][1]
         # Use Astrom-Hagglund method to estimate Ku and Tu
@@ -82,17 +91,17 @@ class PIDAutoTuner:
         Ku = 4. * 100 / (math.pi * amplitude)
         Tu = time_diff
         # Use Ziegler-Nichols method to generate PID or PI parameters
-        if False:
-            Ti = 0.5 * Tu
-            Td = 0.125 * Tu
-            Kp = 0.6 * Ku
-            Ki = Kp / Ti
-            Kd = Kp * Td
-        else:
-            Ti = 0.8 * Tu
-            Kp = 0.4 * Ku
-            Ki = Kp / Ti
-            Kd = 0
+        # PID, derivative term reduces robustness more than it helps
+        #Ti = 0.5 * Tu
+        #Td = 0.125 * Tu
+        #Kp = 0.6 * Ku
+        #Ki = Kp / Ti
+        #Kd = Kp * Td
+        # PI, works better in this implementation
+        Ti = 0.8 * Tu
+        Kp = 0.4 * Ku
+        Ki = Kp / Ti
+        Kd = 0
         print(f"Autotune PID: raw={temp_diff}/{100} Ku={Ku} Tu={Tu}  Kp={Kp} Ki={Ki} Kd={Kd}")
         return Kp, Ki, Kd
     
