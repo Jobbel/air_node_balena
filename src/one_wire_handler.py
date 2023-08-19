@@ -80,7 +80,7 @@ class OneWireHandler(SensorBase):
 
     def get_data(self) -> Dict[str, Any]:
         try:
-            # if the sensor has not beed read in the last 2 seconds consider it to be disconnected
+            # if the sensor has not been read in the last 3 seconds consider it to be disconnected
             if time.time() - self.last_temperature_reading > 6 and self.get_data_called:
                 self.request_data.set()
                 raise Exception  # DS18B20 did not finish temperature measurement in time.
