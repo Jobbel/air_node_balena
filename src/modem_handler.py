@@ -79,10 +79,10 @@ class ModemHandler:
                 nmea_data = nmea_data[11:].split(',')  # remove CGPSINFO from the beginning
                 raw_lat = str(nmea_data[0])
                 raw_lon = str(nmea_data[2])
-                # The modem sometimes delivers wrong lat or lon data, check and ignore this case.
-                if len(raw_lat) != 11 or len(raw_lon) != 12:
+                # The modem sometimes delivers wrong data, check and ignore this case.
+                if len(raw_lat) != 11 or len(raw_lon) != 12 or len(nmea_data[4]) != 6 or len(nmea_data[5]) != 8 or nmea_data[6] == '':
                     self.gps_timestamp = "unknown"
-                    print("received faulty lat/lon data from modem")
+                    print("received faulty lat/lon/time/alt data from modem")
                     return ret
                 ret['lat'] = round((float(raw_lat[0:2]) + (float(raw_lat[2:11]) / 60)), 6)
                 ret['lon'] = round((float(raw_lon[0:3]) + (float(raw_lon[3:12]) / 60)), 6)
