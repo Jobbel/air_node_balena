@@ -33,15 +33,15 @@ class ModemHandler:
         while True:
             ret = {"lat": None, "lon": None, "alt": None, "rssi": None}
             self._update_modem_number()
-            time.sleep(0.1)  # Without these qmicli times out
+            time.sleep(1)  # Without these qmicli times out
             if self.modem_num != -1:
                 ret.update(self._get_gps_location())
-                time.sleep(0.1)  # Without these qmicli times out
+                time.sleep(1)  # Without these qmicli times out
                 ret["rssi"] = self._get_rssi()
             else:
                 prt.GLOBAL_ENTITY.print_once("GPS disconnected", "GPS back online", 10)
             self.current_gps_data = ret
-            time.sleep(1)
+            time.sleep(3)
 
     def _update_modem_number(self) -> None:
         cmd = "mmcli -L | grep Modem | sed -e 's/\//\ /g' | awk '{print $5}'"
@@ -65,6 +65,7 @@ class ModemHandler:
     def _get_gps_location(self) -> Dict[str, Any]:
         ret = {"lat": None, "lon": None, "alt": None}
         cmd = "mmcli -m " + str(self.modem_num) + " --command=AT+CGPSINFO"
+        nmea_data = ""
         try:
             nmea_data = check_output(cmd, shell=True, stderr=STDOUT, timeout=1).decode("utf-8").strip().split("'")[1]
             if ",,,,,,,," in nmea_data:
@@ -82,7 +83,7 @@ class ModemHandler:
                 # The modem sometimes delivers wrong data, check and ignore this case.
                 if len(raw_lat) != 11 or len(raw_lon) != 12 or len(nmea_data[4]) != 6 or len(nmea_data[5]) != 8 or nmea_data[6] == '':
                     self.gps_timestamp = "unknown"
-                    print("received faulty lat/lon/time/alt data from modem")
+                    #print("received faulty lat/lon/time/alt data from modem")
                     return ret
                 ret['lat'] = round((float(raw_lat[0:2]) + (float(raw_lat[2:11]) / 60)), 6)
                 ret['lon'] = round((float(raw_lon[0:3]) + (float(raw_lon[3:12]) / 60)), 6)
@@ -99,6 +100,7 @@ class ModemHandler:
 
     def _get_rssi(self) -> Optional[int]:
         cmd = "mmcli -m " + str(self.modem_num) + " --command=AT+CSQ"
+        ret = ""
         try:
             ret = check_output(cmd, shell=True, stderr=STDOUT, timeout=1).decode("utf-8")
             return self._convert_ss_to_rssi(int(ret.strip().split("response: '+CSQ: ")[1].split(",")[0]))
