@@ -21,7 +21,7 @@ class OLEDController:
 
             try:
                 self.startup_phase = True
-                self.list_entry_amount = 19
+                self.list_entry_amount = 20
 
                 self.serial = i2c(port=config.OLED_PORT, address=config.OLED_ADDRESS)
                 self.device = ssd1306(self.serial, height=64, rotate=0)

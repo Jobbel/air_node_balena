@@ -27,6 +27,7 @@ class InternetWatchdog:
     def _watchdog_worker(self) -> None:
         while True:
             time.sleep(self.interval)
+            # TODO: only check modem handler if gps poll is on to avoid modem restat loop
             if self._internet_connected() and self.modem_handler_instance.get_mm_number() != -1:
                 self.error_counter = 0
                 continue
