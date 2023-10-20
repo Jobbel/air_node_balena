@@ -91,7 +91,7 @@ class OLEDController:
             with canvas(self.virtual) as draw:
                 for i, line in enumerate(data_string.split("\n")):
                     draw.text((0, (i * 12)), text=line, fill="white")
-            self.list_entry_amount = i  # We need this to know how far to scroll
+            self.list_entry_amount = i + 1  # We need this to know how far to scroll
             self.startup_phase = False
         except Exception:
             prt.GLOBAL_ENTITY.print_once("OLED disconnected", "OLED back online", 62)
