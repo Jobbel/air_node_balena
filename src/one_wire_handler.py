@@ -26,18 +26,19 @@ class OneWireHandler(SensorBase):
         self.available_sensors = W1ThermSensor.get_available_sensors()
         self.sensor_count = len(self.available_sensors)
         print(f"Detected: {self.sensor_count} Sensor/s on the 1-Wire Bus")
+
+        # TODO: remove this for production
+        self.enable_thermocouple = self.sensor_count > 1
+
         if self.sensor_count == 0:
             # no need to continue if there is no sensor connected
             print("No heater temperature sensor detected, please check the connection")
             return
         
-        # TODO: remove this for production
-        self.enable_thermocouple = self.sensor_count > 1
-        
         for sensor in self.available_sensors:
             try:
                 print(f"1-Wire Sensor with address: {sensor.id} has temperature: {sensor.get_temperature()}")
-            except SensorNotReadyError:
+            except Exception:
                 print(f"1-Wire Sensor with address: {sensor.id}, offline")
 
         # Set heater sensor id
