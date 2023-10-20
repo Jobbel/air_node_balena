@@ -6,7 +6,7 @@ PUBLISH_RAW_OPC_AND_ADC = True
 # Watchdog settings
 INTERNET_WATCHDOG_ENABLE = True
 INTERNET_WATCHDOG_INTERVAL = 900  # in seconds
-INTERNET_WATCHDOG_MODEM_POWER_PIN = 11  # Pin which can switch modem power
+INTERNET_WATCHDOG_MODEM_POWER_PIN = 35  # Pin which can switch modem power
 
 # Logging settings
 LOGGING_RAW_ENABLE = True  # Log sensor data every second
