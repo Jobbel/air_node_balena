@@ -1,13 +1,14 @@
+from typing import Dict
 import config
 
 # This class is the parent of all sensors and provides a two point calibration function
 
 
-class SensorBase(object):
+class SensorBase:
     def __init__(self):
         pass
 
-    def calibrate(self, raw, cali):
+    def _calibrate(self, raw: float, cali: Dict[str, int]) -> float:
         """
         :param raw: raw sensor value
         :param cali: calibration dict

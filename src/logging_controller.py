@@ -1,3 +1,4 @@
+from typing import Dict, List, Tuple, Any
 import csv
 import io
 import logging
@@ -5,9 +6,8 @@ import os
 import threading
 import time
 from logging.handlers import TimedRotatingFileHandler
-from subprocess import STDOUT, check_output
+from subprocess import STDOUT, check_output, run, PIPE
 from multiprocessing import Queue
-
 import config
 import prt
 
@@ -27,52 +27,87 @@ class ModifiedTimedRotatingFileHandler(TimedRotatingFileHandler):
         return stream
 
 
-class LoggingController(object):
+class LoggingController:
     def __init__(self):
         self.formatter = logging.Formatter('%(message)s')
         logging.raiseExceptions = False
         self.raw_logger = None
         self.avg_logger = None
-        self.logger_state = None
-        self.q = Queue()
+        self.logger_state = "off"
+        self.data_queue = Queue()
+        self.rsync_last_runtime = 0
 
         if config.LOGGING_RAW_ENABLE or config.LOGGING_AVG_ENABLE:
+            # save first start timestamp if rsync is enabled
+            if config.LOGGING_RSYNC_ENABLE:
+                print(f"Rsync enabled, copying CSV files to USB every: {config.LOGGING_RSYNC_INTERVAL} seconds")
+                self.rsync_timestamp = time.time()
             # if any logging is enabled, make sure directory exists
             os.makedirs(config.LOGGING_DIRECTORY, exist_ok=True)
             # and start logging thread
-            self.t = threading.Thread(target=self.loggingWorker)
-            self.t.setDaemon(True)
-            self.t.start()
+            self.thread = threading.Thread(target=self._logging_worker)
+            self.thread.daemon = True
+            self.thread.start()
 
-    def getLoggerState(self):
+    def get_logger_state(self) -> str:
         return self.logger_state
 
-    def logDataTo(self, logger_selector, data):
-        # Save data and where to log it to in Queue as touple
-        self.q.put((logger_selector, data))
+    def get_last_rsync_runtime(self) -> float:
+        # 0 -> never ran before, -1 -> error during rsync, 0< runtime in s
+        return self.rsync_last_runtime
 
-    def loggingWorker(self):
+    def get_logger_queue_size(self) -> int:
+        return self.data_queue.qsize()
+
+    def log_data_to(self, logger_selector: str, data: Dict[str, Any]) -> None:
+        # Save data and where to log it to in Queue as tuple
+        self.data_queue.put((logger_selector, data))
+
+    def _handle_rsync(self) -> None:
+        if time.time() - self.rsync_timestamp < config.LOGGING_RSYNC_INTERVAL:
+            return
+        if not os.path.ismount('/mnt/storage'):
+            prt.GLOBAL_ENTITY.print_once(f"USB stick is not mounted, skipping rsync", "", config.LOGGING_RSYNC_INTERVAL + 2)
+            self.rsync_last_runtime = -1
+            self.rsync_timestamp = time.time()
+            return
+        start_timestamp = time.time()
+        cmd = ['rsync', '-ruv', config.LOGGING_DIRECTORY, "/mnt/storage"]
+        try:
+            output = run(cmd, stdout=PIPE, stderr=PIPE, timeout=60)
+            if config.LOGGING_RSYNC_DEBUG:
+                print(output.stdout.decode())
+                print(output.stderr.decode())
+            self.rsync_last_runtime = round(time.time() - start_timestamp, config.DIGIT_ACCURACY)
+        except Exception as e:
+            self.rsync_last_runtime = -1
+            print(f"Rsync failed to run, dump: {e}")
+        self.rsync_timestamp = time.time()
+
+    def _logging_worker(self) -> None:
         while True:
-            if not self.q.empty():
-                if os.path.exists(config.LOGGING_DIRECTORY):
-                    item = self.q.get()
-                    try:
-                        self.writelogData(item)
-                        self.logger_state = "working" if self.q.empty() else "backlog"
-                    except Exception as e:
-                        print(e)
-                        print(f"Failed to generate {item[0]} logger")
-                        self.logger_state = "error"
-                        self.resetLoggers()
-                        time.sleep(10)
-                else:
-                    self.logger_state = "wrong path"
-                    self.resetLoggers()
-                    time.sleep(10)
             time.sleep(0.2)
+            # Handling rsync here makes sure that no new data is written by the loggers during the copy process
+            if config.LOGGING_RSYNC_ENABLE:
+                self._handle_rsync()
+            if self.data_queue.empty():
+                continue
+            if os.path.exists(config.LOGGING_DIRECTORY):
+                item = self.data_queue.get()
+                try:
+                    self._write_log_data(item)
+                    self.logger_state = "working" if self.data_queue.empty() else "backlog"
+                except Exception as e:
+                    print(f"Failed to run {item[0]} logger, dump {e}")
+                    self.logger_state = "error"
+                    self._reset_loggers()
+                    time.sleep(10)
+            else:
+                self.logger_state = "wrong path"
+                self._reset_loggers()
+                time.sleep(10)
 
-
-    def setupMidnightlogger(self, name, log_file, data_header, level=logging.INFO):
+    def _setup_midnightlogger(self, name, log_file, data_header, level=logging.INFO):
         handler = ModifiedTimedRotatingFileHandler(log_file, when='midnight', header=data_header)
         handler.setFormatter(self.formatter)
         handler.suffix = "%Y-%m-%d"
@@ -81,25 +116,25 @@ class LoggingController(object):
         logger.addHandler(handler)
         return logger
 
-    def dictToCSV(self, dict):
+    def _dict_to_csv(self, data: Dict[str, Any]) -> str:
         output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=list(dict.keys()))
-        writer.writerow(dict)
+        writer = csv.DictWriter(output, fieldnames=list(data.keys()))
+        writer.writerow(data)
         return output.getvalue().rstrip('\n')  # Remove unnecessary newline
 
-    def generateCSVHeaderFromList(self, list):
+    def _generate_csv_header_from_list(self, data: List) -> str:
         ret = ""
-        for item in list:
+        for item in data:
             ret += item
             ret += ","
         return ret.rstrip(",")  # Remove last comma
 
-    def getTimeSinceLastWrite(self, path):
-        line = check_output(['tail', '-1', path], stderr=STDOUT, timeout=0.1)
+    def _get_time_since_last_write(self, path: str) -> float:
+        line = check_output(['tail', '-1', path], stderr=STDOUT, timeout=1)
         last_written_timestamp = float(line.decode("utf-8").split(",")[-3])
         return time.time() - last_written_timestamp
 
-    def resetLoggers(self):
+    def _reset_loggers(self) -> None:
         if self.raw_logger is not None:
             self.raw_logger.handlers.pop()
             self.raw_logger = None
@@ -107,36 +142,38 @@ class LoggingController(object):
             self.avg_logger.handlers.pop()
             self.avg_logger = None
 
-    def writelogData(self, item):
+    def _write_log_data(self, item: Tuple[str, Dict[str, Any]]) -> None:
         (logger_selector, data) = item
 
         if logger_selector == "raw":
             file = config.LOGGING_DIRECTORY + config.NODE_ID + "_raw_every_second_data.log"
             if self.raw_logger is None:
                 print("Trying to generate raw logger")
-                self.raw_logger = self.setupMidnightlogger('raw_logger', file, self.generateCSVHeaderFromList(list(data.keys())))
-            self.raw_logger.info(self.dictToCSV(data))
+                self.raw_logger = self._setup_midnightlogger('raw_logger', file,
+                                                             self._generate_csv_header_from_list(list(data.keys())))
+            self.raw_logger.info(self._dict_to_csv(data))
 
         elif logger_selector == "avg":
             file = config.LOGGING_DIRECTORY + config.NODE_ID + "_avg_every_minute_data.log"
             if self.avg_logger is None:
                 print("Trying to generate avg logger")
-                self.avg_logger = self.setupMidnightlogger('avg_logger', file, self.generateCSVHeaderFromList(list(data.keys())))
-            self.avg_logger.info(self.dictToCSV(data))
+                self.avg_logger = self._setup_midnightlogger('avg_logger', file,
+                                                             self._generate_csv_header_from_list(list(data.keys())))
+            self.avg_logger.info(self._dict_to_csv(data))
 
         else:
             print("wrong key:", logger_selector, "you cannot select a logger that does not exist")
             raise KeyError
 
         # now check if we just wrote successfully
-        last_write_time = self.getTimeSinceLastWrite(file)
-        #print("last write for", logger_selector, round(last_write_time, 2), "seconds ago")
-        if last_write_time > 1 and self.q.empty():
-            print(f"last {logger_selector} logger entry is too old, checking usb drive")
+        last_write_time = self._get_time_since_last_write(file)
+        # print("last write for", logger_selector, round(last_write_time, 2), "seconds ago")
+        if last_write_time > 1 and self.data_queue.empty():
+            print(f"last {logger_selector} logger entry is too old, restarting loggers")
             raise OSError
-        else:
-            timeout = 2 if logger_selector == "raw" else 65
-            prt.global_entity.printOnce(f"{logger_selector} logger started", f"{logger_selector} logger stopped working", timeout)
+        timeout = 2 if logger_selector == "raw" else 65
+        prt.GLOBAL_ENTITY.print_once(f"{logger_selector} logger started",
+                                     f"{logger_selector} logger stopped working", timeout)
 
-    def stop(self):
-        self.resetLoggers()
+    def stop(self) -> None:
+        self._reset_loggers()

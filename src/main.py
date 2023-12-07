@@ -1,37 +1,63 @@
 import datetime
 import logging
-import signal
 import sys
 import time
-
+from signal import signal, SIGINT, SIGTERM
+from typing import List, Dict, Any, Optional
+from types import FrameType
+import pandas as pd
+from apscheduler.schedulers.blocking import BlockingScheduler
 import config
 import prt
-import psutil
+from system_metrics import (
+    get_cpu_temp,
+    get_cpu_usage,
+    get_uptime,
+    get_disk_usage,
+    get_usb_drive_usage,
+    get_total_data_usage,
+    get_ram_usage,
+)
 from adc_handler import ADCHandler
-from apscheduler.schedulers.blocking import BlockingScheduler
 from heating_controller import HeatingController
 from hyt_handler import HYTHandler
 from logging_controller import LoggingController
 from modem_handler import ModemHandler
 from mqtt_controller import MQTTController
 from oled_controller import OLEDController
+from one_wire_handler import OneWireHandler
 from opc_handler import OPCHandler
 from prt import OncePrinter
-from requests import get
 from sht_handler import SHTHandler
+from internet_watchdog import InternetWatchdog
+
 
 ### GLOBAL VARS ###
-prt.global_entity = OncePrinter()  # This instantiates the OncePrinter used across all modules
-modem = ModemHandler()  # This reads gps and signal strength data from the modem periodically
-mqtt = MQTTController()  # This instantiates an mqtt object and tries to connect
-logg = LoggingController()  # This object will log average and raw data to a usb drive
+# List for storing and averaging sensor data dicts
+minute_data = []
+
+### GLOBAL INSTANCES ###
+# This scheduler calls the everySecond and everyMinute functions
+scheduler = BlockingScheduler()
+# This instantiates the single OncePrinter used across all modules
+prt.GLOBAL_ENTITY = OncePrinter()
+# This reads gps and signal strength data from the modem periodically
+modem = ModemHandler()
+# This object will log average and raw data to a usb drive
+logg = LoggingController()
+# This instantiates a mqtt object and tries to connect if configured
+if config.MQTT_ENABLE:
+    mqtt = MQTTController()
+# Start measurement air heater controller if configured
 if config.HEATER_ENABLE:
     heat = HeatingController()
+# Start oled display controller if configured
 if config.OLED_ENABLE:
     oled = OLEDController()
+# This watchdog keeps the internet connection alive by restarting the modem
+if config.INTERNET_WATCHDOG_ENABLE:
+    watchdog = InternetWatchdog(interval=config.INTERNET_WATCHDOG_INTERVAL, modem_handler_instance=modem)
 
-minute_data = []  # Container for storing and averaging sensor data
-public_ip = "unknown"
 
 ### SENSOR INIT ###
 try:
@@ -43,164 +69,143 @@ try:
         hyt = HYTHandler()
     if config.ADC_ENABLE:
         adc = ADCHandler()
+    if config.ONE_WIRE_ENABLE:
+        one_wire = OneWireHandler()
     print("Sensor startup successful")
-except:
-    print("Sensor startup failed!")
+except Exception as e:
+    print(f"Sensor startup failed, dump: {e}")
+    sys.exit()
+
+time.sleep(10)  # Wait for all sensors to come online
 
 
-def getCPUTemp():
-    try:
-        temp_file = open('/sys/class/thermal/thermal_zone0/temp')
-        return round(float(temp_file.read()) / 1000, 2)
-    except:
-        return 0
-
-
-def getUptime():
-    try:
-        temp_file = open('/proc/uptime', 'r')
-        uptime_seconds = round(float(temp_file.readline().split()[0]))
-        return str(datetime.timedelta(seconds=uptime_seconds))
-    except:
-        return 0
-
-
-def getDiskUsage():
-    try:
-        return psutil.disk_usage('/').percent
-        # return psutil.disk_usage('/mnt/storage').percent
-    except:
-        prt.global_entity.printOnce("Failed to fetch disk usage", "Successfully fetching disk usage again", 62)
-        return 0
-
-
-def getTotalDataUsage():
-    for device in ['wwan0', 'wwp1s0u1u3i5', 'wwp1s0u1u4i5', 'ppp0']:
-        try:
-            netio = psutil.net_io_counters(pernic=True)
-            net_usage = netio[device].bytes_sent + netio[device].bytes_recv
-            return round(net_usage / 1000000, 2)
-        except:
-            pass
-    prt.global_entity.printOnce("Failed to fetch data usage", "Successfully fetching data usage again", 62)
-    return 0
-
-
-def updatePublicIP():
-    global public_ip
-    try:
-        public_ip = get('https://api.ipify.org').text
-    except:
-        print("failed to fetch public ip")
-        public_ip = "unknown"
-
-
-def getAllData():
+def get_all_data() -> Dict[str, float]:
     ret = {}
-    # get sensors
+    # get sensor data
     if config.OPC_ENABLE:
-        ret.update(opc.getData())
+        ret.update(opc.get_data())
     if config.SHT_ENABLE:
-        ret.update(sht.getData())
+        ret.update(sht.get_data())
     if config.HYT_ENABLE:
-        ret.update(hyt.getData())
-    # we need the current temperature for the gas sensor formula
+        ret.update(hyt.get_data())
     if config.ADC_ENABLE:
-        ret.update(adc.getData(ret))
+        ret.update(adc.get_data())
+    if config.ONE_WIRE_ENABLE:
+        ret.update(one_wire.get_data())
     # get telemetry
     if config.HEATER_ENABLE:
-        ret.update(heat.getData())
-    ret.update(modem.getData())
+        ret.update(heat.get_data())
+    ret.update(modem.get_data())
     return ret
 
 
-def calculateMeanData(minute_data):
-    mean_dict = {}
-    for key in minute_data[0].keys():
-        try:
-            if key not in ["lat", "lon", "alt"]:  # latitude and longitude need a higher rounding accuracy
-                mean_dict[key] = round(sum(d[key] for d in minute_data) / len(minute_data), config.DIGIT_ACCURACY)
-            else:
-                i_list = [d[key] for d in minute_data if d[key] != 0]  # intermediate list without 0s
-                if i_list:
-                    mean_dict[key] = round(sum(i_list) / len(i_list), (config.DIGIT_ACCURACY if key == "alt" else 6))
-                else:
-                    # if there are only zeros in the list handle division by zero
-                    mean_dict[key] = 0.0
-        except:
-            print(key, "not available, did the sensor die ?")
-    return mean_dict
+def calculate_mean_data(collected_data: List[Dict[str, float]]) -> Optional[Dict[str, float]]:
+    try:
+        mean_df = pd.DataFrame(collected_data).mean()
+        ret = mean_df.fillna(0).to_dict()
+    except ValueError as e:
+        print(f"Averaging minute data failed, skipping this minute. Error dump: {e}")
+        return None
+    # Make sure lat/lon coordinates have 6 decimal digits while the rest has the configured amount
+    return {
+        key: round(val, config.DIGIT_ACCURACY if key not in ["lat", "lon"] else 6)
+        for key, val in ret.items()
+    }
 
 
-def appendTimestampsTo(data):
+def append_timestamps_to(data: Dict[str, Any]) -> Dict[str, Any]:
     ret = dict(data)
-    ret['timestamp'] = time.time()
-    ret['timestamp_hr'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    ret['timestamp_gps'] = modem.getGPSTimestamp()
+    ret["timestamp"] = time.time()
+    ret["timestamp_hr"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ret["timestamp_gps"] = modem.get_gps_timestamp()
     return ret
 
 
-def generatePublishingMessage(mean_data):
+def generate_publishing_message(mean_data: Dict[str, float]) -> Dict[str, Any]:
     # move these 5 averaged telemetry entries from data to tele
-    heater_buffer = mean_data.pop("heater")
-    lat_buffer = mean_data.pop("lat")
-    lon_buffer = mean_data.pop("lon")
-    alt_buffer = mean_data.pop("alt")
-    rssi_buffer = mean_data.pop("rssi")
+    heater_buffer = mean_data.pop("heater", 0)
+    lat_buffer = mean_data.pop("lat", 0)
+    lon_buffer = mean_data.pop("lon", 0)
+    alt_buffer = mean_data.pop("alt", 0)
+    rssi_buffer = mean_data.pop("rssi", 0)
     # now there is only averaged sensor data in mean_data
-    ret = {"node_id": config.NODE_ID,
-           "data": mean_data,
-           "tele": {
-               "heater": heater_buffer,
-               "lat": lat_buffer,
-               "lon": lon_buffer,
-               "alt": alt_buffer,
-               "rssi": rssi_buffer,
-               "data_used": getTotalDataUsage() if config.GPS_POLL_ENABLE else 0,
-               "disk_used": getDiskUsage() if config.LOGGING_RAW_ENABLE or config.LOGGING_AVG_ENABLE else 0,
-               "cpu_load": psutil.cpu_percent(),
-               "cpu_temp": getCPUTemp(),
-               "uptime": getUptime(),
-               "public_ip": public_ip,
-               "modem_num": modem.getMMNumber(),
-               "logger_state": logg.getLoggerState()
-           }}
-    return appendTimestampsTo(ret)
+    ret = {
+        "node_id": config.NODE_ID,
+        "data": mean_data,
+        "tele": {
+            "heater": heater_buffer,
+            "lat": lat_buffer,
+            "lon": lon_buffer,
+            "alt": alt_buffer,
+            "rssi": rssi_buffer,
+            "data_used": get_total_data_usage(),
+            "disk_used": get_disk_usage(),
+            "usb_used": get_usb_drive_usage(),
+            "ram_usage": get_ram_usage(),
+            "cpu_load": get_cpu_usage(),
+            "cpu_temp": get_cpu_temp(),
+            "uptime": get_uptime(),
+            "modem_num": modem.get_mm_number(),
+            "logger_state": logg.get_logger_state(),
+            "logger_queue": logg.get_logger_queue_size(),
+            "rsync_runtime": logg.get_last_rsync_runtime(),
+        },
+    }
+    return append_timestamps_to(ret)
 
 
-def removeRAWDataFrom(data):
+def remove_raw_data_from(data: Dict[str, Any]) -> Dict[str, Any]:
     return {key: val for key, val in data.items() if not key.startswith("RAW_")}
 
 
-def everySecond():
-    raw_data = getAllData()
-    minute_data.append(raw_data)
+def remove_none_from(data: Dict[str, Any]) -> Dict[str, Any]:
+    return {key: 0 if val is None else val for key, val in data.items()}
+
+
+def update_oled_display(data: Dict[str, Any]) -> None:
+    data_clean = remove_raw_data_from(data)
+    mqtt_state = mqtt.get_connected() if config.MQTT_ENABLE else False
+    modem_mm = modem.get_mm_number()
+    log_state = logg.get_logger_state()
+    oled.update_view(data_clean, mqtt_state, modem_mm, log_state)
+
+
+def every_second() -> None:
+    second_data = get_all_data()
+    minute_data.append(second_data)
     if config.HEATER_ENABLE:
-        heat.updateHeating(raw_data)
+        heat.update_heating(second_data)
     if config.OLED_ENABLE and config.OLED_RAW:
-        oled.updateView(removeRAWDataFrom(raw_data), mqtt.getConnected(), modem.getMMNumber(), logg.getLoggerState())
+        update_oled_display(second_data)
     if config.LOGGING_RAW_ENABLE:
-        logg.logDataTo("raw", appendTimestampsTo(raw_data))
+        # Remove None (missing sensor data) to get 0 entries in CSV Log
+        logg.log_data_to("raw", append_timestamps_to(remove_none_from(second_data)))
 
 
-def everyMinute():
-    avg_data = calculateMeanData(minute_data)
+def every_minute() -> None:
+    avg_data = calculate_mean_data(minute_data)
     minute_data.clear()
+    if avg_data is None:
+        return
     if config.OLED_ENABLE and not config.OLED_RAW:
-        oled.updateView(removeRAWDataFrom(avg_data), mqtt.getConnected(), modem.getMMNumber(), logg.getLoggerState())
+        update_oled_display(avg_data)
     if config.LOGGING_AVG_ENABLE:
-        logg.logDataTo("avg", appendTimestampsTo(avg_data))
+        # Average data does not contain None, see calculate_mean_data()
+        logg.log_data_to("avg", append_timestamps_to(avg_data))
+    if not config.MQTT_ENABLE:
+        return
     if config.PUBLISH_RAW_OPC_AND_ADC:
-        mqtt.publishData(generatePublishingMessage(avg_data))
+        mqtt.publish_data(generate_publishing_message(avg_data))
     else:
-        mqtt.publishData(generatePublishingMessage(removeRAWDataFrom(avg_data)))
+        mqtt.publish_data(generate_publishing_message(remove_raw_data_from(avg_data)))
 
-def exitHandler(signum, frame):
+
+def exit_handler(signum: int, _frame: Optional[FrameType]) -> None:
     print("Received Signal: ", str(signum), "\nCleaning up")
-    ### Sensor cleanup ###
-    sched.shutdown()
+    scheduler.shutdown()
     modem.stop()
     logg.stop()
+    ### Sensor cleanup ###
     if config.SHT_ENABLE:
         sht.stop()
     if config.HEATER_ENABLE:
@@ -213,29 +218,29 @@ def exitHandler(signum, frame):
         hyt.stop()
     if config.ADC_ENABLE:
         adc.stop()
+    if config.ONE_WIRE_ENABLE:
+        one_wire.stop()
+    if config.MQTT_ENABLE:
+        mqtt.stop()
     print("Cleanup completed")
     sys.exit(0)
 
 
-try:
+def main() -> None:
     # capture exit signals (from tini if running in docker container)
-    signal.signal(signal.SIGINT, exitHandler)
-    signal.signal(signal.SIGTERM, exitHandler)
+    signal(SIGINT, exit_handler)
+    signal(SIGTERM, exit_handler)
 
     # Comment these out if you want to see console logs
-    logging.getLogger('apscheduler').setLevel(logging.WARNING)
-    logging.getLogger('raw_logger').propagate = False
-    logging.getLogger('avg_logger').propagate = False
-
-    # update Public IP once on startup
-    updatePublicIP()
+    logging.getLogger("apscheduler").setLevel(logging.WARNING)
+    logging.getLogger("raw_logger").propagate = False
+    logging.getLogger("avg_logger").propagate = False
 
     # Scheduler setup and blocking start call
-    sched = BlockingScheduler()
-    sched.add_job(everySecond, 'interval', seconds=1)
-    sched.add_job(everyMinute, 'interval', minutes=1)
-    sched.add_job(updatePublicIP, 'interval', hours=1)
-    sched.start()
+    scheduler.add_job(every_second, "interval", seconds=1)
+    scheduler.add_job(every_minute, "interval", minutes=1)
+    scheduler.start()
 
-except KeyboardInterrupt:
-    exitHandler("User Exit", None)
+
+if __name__ == "__main__":
+    main()

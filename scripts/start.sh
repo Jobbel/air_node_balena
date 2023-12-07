@@ -1,49 +1,35 @@
 #!/bin/bash
-# Setting DBUS addresss so that we can talk to Modem Manager
-export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/host/run/dbus/system_bus_socket"
 
 # USB stick variables
-DEVNAME=/dev/sda1
 MOUNT_POINT=/mnt/storage
-ID_FS_TYPE=vfat
 
-# This Function checks if a device is mounted
-isMounted    () { findmnt -rno SOURCE,TARGET "$1" >/dev/null;} #path or device
-
-# Mount flash drive on startup
+# Ensure the mount point exists
 mkdir -p $MOUNT_POINT
-mount -v -t $ID_FS_TYPE -o rw $DEVNAME $MOUNT_POINT
+
+# Check if /dev/sda exists
+if [ -e /dev/sda1 ]; then
+    DEVNAME=/dev/sda1
+else
+    DEVNAME=/dev/sdb1
+fi
+
+# Unmount the device if it's already mounted
+if mount | grep -q "$DEVNAME on $MOUNT_POINT"; then
+    umount -v $MOUNT_POINT
+fi
+
+# Attempt to repair the USB drive with fsck (for VFAT)
+fsck -p $DEVNAME
+
+# Check the exit status of fsck
+if [ $? -eq 0 ]; then
+    echo "USB drive file system restored successfully."
+else
+    echo "USB drive file system repair failed. You may need to manually repair the device."
+fi
+
+# Mount USB drive
+mount -v -o rw $DEVNAME $MOUNT_POINT
 
 # Start main program
-python /usr/src/app/main.py &
-
-# Keep Internet up and copy new logging data to usb stick every 10 minutes
-while :
-do
-	sleep 600
-	
-	if isMounted $DEVNAME; then
-		echo "USB device is mounted, updating log files"
-		rsync -a /data/log_data $MOUNT_POINT
-	else 
-		echo "No USB device is mounted"
-	fi
-	
-	if curl -s --connect-timeout 52 http://google.com  > /dev/null; then
-		echo "Internet connection is working"
-	else
-		echo "Internet connection seems down, restarting modem"
-		# Force unmount USB Drive
-		umount -f $MOUNT_POINT  > /dev/null
-		rmdir $MOUNT_POINT
-		udisksctl power-off -b $DEVNAME  > /dev/null
-		# Reset USB power
-		uhubctl -l 1-1 -a 0  > /dev/null
-		sleep 5
-		uhubctl -l 1-1 -a 1  > /dev/null
-		sleep 10
-		# Mount USB Drive again
-		mkdir -p $MOUNT_POINT
-    mount -v -t $ID_FS_TYPE -o rw $DEVNAME $MOUNT_POINT  > /dev/null
-	fi
-done
+python -u /usr/src/app/main.py

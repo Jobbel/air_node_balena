@@ -1,91 +1,114 @@
+from typing import Dict
+import time
 import RPi.GPIO
+from simple_pid import PID
 import config
 import prt
-from simple_pid import PID
+from pid_autotuner import PIDAutoTuner
+
 
 # define custom exceptions describing heater conditions
 class MissingDataException(Exception):
     pass
+
+
 class OverheatingException(Exception):
     pass
 
-class HeatingController(object):
+
+class HeatingController:
     def __init__(self):
         self.heater_power = 0
+        self.target_temp = 0
         self.GPIO = RPi.GPIO
         self.GPIO.setmode(self.GPIO.BOARD)
         self.GPIO.setwarnings(False)
         self.GPIO.setup(config.HEATER_PIN, self.GPIO.OUT)
         self.p = self.GPIO.PWM(config.HEATER_PIN, 50)
         self.p.start(0)
-        # Humidity PID is reversed, heating -> humidity drops
-        self.pid_h = PID(-20, -0.02, -0, setpoint=config.HEATER_PID_HUMID_SETPOINT, sample_time=None)
-        self.pid_h.output_limits = (0, 100)
-        self.pid_h.tunings = config.HEATER_PID_HUMID_TUNING
-        # Temperature PID is normal, heating -> temperature rises
-        self.pid_t = PID(20, 0.02, 0, setpoint=config.HEATER_PID_TEMP_SETPOINT, sample_time=None)
+        # Temperature PID
+        self.pid_t = PID(20, 0.1, 0, setpoint=-100, sample_time=None)
         self.pid_t.output_limits = (0, 100)
         self.pid_t.tunings = config.HEATER_PID_TEMP_TUNING
 
-    def updateHeating(self, data):
+        self.pid_autotuning_enabled = config.HEATER_PID_AUTOTUNER_ENABLE
+        self.pid_autotuner = PIDAutoTuner(
+            calibration_temperature=config.HEATER_PID_AUTOTUNER_CALIBRATION_TEMPERATURE,
+            relay_hysteresis_delta=config.HEATER_PID_AUTOTUNER_RELAY_HYSTERESIS_DELTA,
+        )
+        
+    def get_data(self) -> Dict[str, int]:
+        return {"heater": self.heater_power, "heater_set": self.target_temp}
+
+    def update_heating(self, data: Dict[str, float]) -> None:
+        heater_temp = data['heater_temp']
+        outside_humidity = data['sht_humid']
+        opc_temp = data['opc_temp']
+        #outside_temperature = data['sht_temp']
+        #opc_humid = data['opc_humid']
+
         try:
-            inside_humidity = data['opc_humid']
-            inside_temperature = data['opc_temp']
-            # outside_humidity = data['hyt_humid']
-            # outside_temperature = data['hyt_temp']
-            # if opc has a fault, dont heat
-            if inside_temperature == 0.00 and inside_humidity == 0.00:
-                prt.global_entity.printOnce("Missing sensor data, disabling heater", "Heater back online")
+            # if ds temp sensor or sht has a fault, dont heat
+            if heater_temp is None or outside_humidity is None or opc_temp is None:
+                prt.GLOBAL_ENTITY.print_once("Missing sensor data, disabling heater", "Heater back online")
                 raise MissingDataException
+            # if heater temperature is too high dont continue heating
+            if heater_temp > 55:
+                prt.GLOBAL_ENTITY.print_once("Overheating, disabling heater", "Cooled down, Heater back online")
+                raise OverheatingException
             # if opc temperature is too high dont continue heating
-            if inside_temperature > 50:
-                prt.global_entity.printOnce("OPC Overheating, disabling heater", "OPC cooled down, Heater back online")
+            if opc_temp > 55:
+                prt.GLOBAL_ENTITY.print_once("OPC overheating, disabling heater", "OPC cooled down, Heater back online")
                 raise OverheatingException
         except (MissingDataException, OverheatingException):
+            self.target_temp = -100
             self.heater_power = 0
             self.p.ChangeDutyCycle(self.heater_power)
-            # reset pids to avoid integral windup
-            self.pid_h.auto_mode = False
+            self.pid_autotuner.reset()
+            # reset pid to avoid integral windup
             self.pid_t.auto_mode = False
             return
 
         if config.HEATER_DEBUG:
-            print(f"temp:{inside_temperature}, humid:{inside_humidity}, heater:{self.heater_power}")
-
-        # Temp should be kept above 15 degrees, humidity below 50%
-        if not config.HEATER_PID_ENABLE:
-            if inside_humidity > 50 or inside_temperature < 15:
-                self.heater_power = 100
-            elif inside_humidity < 45 and inside_temperature > 20:
-                self.heater_power = 0
-        else:
-            # Humidity PID
-            if inside_humidity > config.HEATER_PID_HUMID_SETPOINT - 5:  # start pid if we get within 5%H of the setpoint
-                self.pid_h.auto_mode = True
-                pid_h_out = round(self.pid_h(inside_humidity), 2)
-                if config.HEATER_DEBUG:
-                    print("Humidity PID:    ", [round(x, 2) for x in self.pid_h.components])
+            print(f"temp:{heater_temp}, heater_target:{self.target_temp}, heater_power:{self.heater_power}, outside_humidity:{outside_humidity}")
+        
+        try:
+            if self.pid_autotuning_enabled:
+                self.target_temp = self.pid_autotuner.get_target_temp()
+                self.heater_power = self.pid_autotuner.run(current_temp=heater_temp)
             else:
-                self.pid_h.auto_mode = False
-                pid_h_out = 0
-            # Temperature PID
-            if inside_temperature < config.HEATER_PID_TEMP_SETPOINT + 5:  # start pid if we get within 5°C of the setpoint
-                self.pid_t.auto_mode = True
-                pid_t_out = round(self.pid_t(inside_temperature), 2)
-                if config.HEATER_DEBUG:
-                    print("Temperature PID: ", [round(x, 2) for x in self.pid_t.components])
-            else:
-                self.pid_t.auto_mode = False
-                pid_t_out = 0
-
-            # Use max output from both PIDs
-            self.heater_power = max(pid_h_out, pid_t_out)
+                self.target_temp = self._calculate_dehumidification_temperature(outside_humidity=outside_humidity)
+                self.heater_power = self._run_pid_control(current_temp=heater_temp, target_temp=self.target_temp)
+        except Exception as e:
+            prt.GLOBAL_ENTITY.print_once(f"Heater fault, dump: {e}", "Heater fault stopped, dump: {e}")
+            self.heater_power = 0
 
         self.p.ChangeDutyCycle(self.heater_power)
 
-    def getData(self):
-        return {"heater": self.heater_power}
+    def _calculate_dehumidification_temperature(self, outside_humidity: float) -> float:
+        # TODO: Think about hysteresis around 50% outside_humidity
+        setpoint_temperature = -100  # Disables heater
+        if outside_humidity >= 50:
+            # Use Fidas 200 Polynomial
+            setpoint_temperature = 0.0084 * outside_humidity * outside_humidity - 0.73 * outside_humidity + 37.653
+            # Constrain to 0 to 50 °C range
+            setpoint_temperature = round(min(50, max(0, setpoint_temperature)), 1)
+        return setpoint_temperature
 
-    def stop(self):
+    def _run_pid_control(self, current_temp: float, target_temp: float) -> float:
+        power = 0
+        # Only enable PID if temp not too high
+        if current_temp < target_temp + 5:
+            self.pid_t.auto_mode = True
+            self.pid_t.setpoint = target_temp
+            power = round(self.pid_t(current_temp), 2)
+            if config.HEATER_DEBUG:
+                print("Temperature PID: ", [round(x, 2) for x in self.pid_t.components])
+        else:
+            self.pid_t.auto_mode = False
+        return power
+
+
+    def stop(self) -> None:
         self.p.stop()
         self.GPIO.cleanup()
