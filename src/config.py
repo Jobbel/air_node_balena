@@ -38,6 +38,8 @@ try:
     HEATER_PIN = int(os.environ['HEATER_PIN'])
     HEATER_DEBUG = os.environ['HEATER_DEBUG'] in 'True'  # Enable heater debug messages
     HEATER_PID_TEMP_TUNING = literal_eval(os.environ.get("HEATER_PID_TEMP_TUNING"))
+    HEATER_MIN_TEMP = int(os.environ['HEATER_MIN_TEMP'])  # Minimum temperature to always keep, even below 50% ambient humidity. Keeps Electronics warm and dry (-100) to disable
+
 
     HEATER_PID_AUTOTUNER_ENABLE = os.environ['HEATER_PID_AUTOTUNER_ENABLE'] in 'True'  # This runs a PID Autotuning sequence if enabled, disable this for normal operation
     HEATER_PID_AUTOTUNER_CALIBRATION_TEMPERATURE = float(os.environ['HEATER_PID_AUTOTUNER_CALIBRATION_TEMPERATURE'])  # This is the temperature at which te autotuning will be done, This temperature should be where the controller will be run at most of the time

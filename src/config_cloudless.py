@@ -34,6 +34,7 @@ HEATER_ENABLE = True  # This should only be enabled if an opc is used
 HEATER_PIN = 12
 HEATER_DEBUG = False  # Enable heater debug messages
 HEATER_PID_TEMP_TUNING = (20, 0.1, 0)  # Has to be positive to counter falling temperature
+HEATER_MIN_TEMP = 22  # Minimum temperature to always keep, even below 50% ambient humidity. Keeps Electronics warm and dry (-100) to disable
 
 HEATER_PID_AUTOTUNER_ENABLE = False  # This runs a PID Autotuning sequence if enabled, disable this for normal operation
 HEATER_PID_AUTOTUNER_CALIBRATION_TEMPERATURE = 42  # This is the temperature at which te autotuning will be done, This temperature should be where the controller will be run at most of the time
