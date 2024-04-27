@@ -25,8 +25,8 @@ class MQTTController:
 
         try:
             self.client.connect(config.MQTT_SERVER, config.MQTT_PORT)
-        except AttributeError:
-            print(f"Can't connect to MQTT Broker:{config.MQTT_SERVER} at port:{config.MQTT_PORT}")
+        except Exception as e:
+            print(f"Can't connect to MQTT Broker:{config.MQTT_SERVER} at port:{config.MQTT_PORT}, dump: {e}")
 
         self.client.loop_start()  # Start MQTT handling in a new thread
 
