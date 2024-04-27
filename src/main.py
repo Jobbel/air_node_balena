@@ -202,14 +202,16 @@ def every_minute() -> None:
 
 def exit_handler(signum: int, _frame: Optional[FrameType]) -> None:
     print("Received Signal: ", str(signum), "\nCleaning up")
-    scheduler.shutdown()
+    # Stop heater with highest priority
+    if config.HEATER_ENABLE:
+        heat.stop()
+        print("Heater controller stopped")
+    scheduler.shutdown(wait=False)
     modem.stop()
     logg.stop()
     ### Sensor cleanup ###
     if config.SHT_ENABLE:
         sht.stop()
-    if config.HEATER_ENABLE:
-        heat.stop()
     if config.OLED_ENABLE:
         oled.stop()
     if config.OPC_ENABLE:

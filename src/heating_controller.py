@@ -111,5 +111,6 @@ class HeatingController:
 
 
     def stop(self) -> None:
+        self.p.ChangeDutyCycle(0)
         self.p.stop()
         self.GPIO.cleanup()
