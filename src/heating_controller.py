@@ -87,15 +87,13 @@ class HeatingController:
         self.p.ChangeDutyCycle(self.heater_power)
 
     def _calculate_dehumidification_temperature(self, outside_humidity: float) -> float:
-        # TODO: Think about hysteresis around 50% outside_humidity
-        setpoint_temperature = config.HEATER_MIN_TEMP
         # constrain HEATER_MIN_TEMP to avoid too high temperatures
-        setpoint_temperature = np.clip(setpoint_temperature, -100, 22)
+        setpoint_temperature = np.clip(config.HEATER_MIN_TEMP, -100, 22)
         if outside_humidity >= 50:
             # Use Setpoint Temp Polynomial
             setpoint_temperature = 0.0084 * outside_humidity * outside_humidity - 0.73 * outside_humidity + 37.653
             # Constrain to 0 to 50 °C range
-            setpoint_temperature = round(min(50, max(0, setpoint_temperature)), 1)
+            setpoint_temperature = round(np.clip(setpoint_temperature, 0, 50), 1)
         return setpoint_temperature
 
     def _run_pid_control(self, current_temp: float, target_temp: float) -> float:
