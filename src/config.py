@@ -32,6 +32,7 @@ try:
 
     # GPS settings
     GPS_POLL_ENABLE = os.environ['GPS_POLL_ENABLE'] in 'True'
+    GPS_POLL_USE_DBUS = os.environ['GPS_POLL_USE_DBUS'] in 'True'  # Use DBUS to get GPS data, if false mmcli for SIM7600 is used
 
     # HARDWARE SETTINGS
     HEATER_ENABLE = os.environ['HEATER_ENABLE'] in 'True'  # This should only be enabled if an opc is used

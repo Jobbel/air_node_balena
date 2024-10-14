@@ -14,6 +14,8 @@
 # numpy
 # pandas
 # w1thermsensor
+# pynmeagps
+# dbus-python
 
 # known working versions 2023
 
@@ -24,6 +26,7 @@ Adafruit-SHT31==1.0.2
 APScheduler==3.10.4
 cbor2==5.5.1
 click==8.1.7
+dbus-python==1.3.2
 luma.core==2.4.1
 luma.oled==3.13.0
 Mako==1.1.3
@@ -35,6 +38,7 @@ pandas==2.1.3
 Pillow==10.1.0
 psutil==5.9.6
 pyftdi==0.55.0
+pynmeagps==1.0.43
 pyserial==3.5
 python-dateutil==2.8.2
 pytz==2023.3.post1

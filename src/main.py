@@ -23,6 +23,7 @@ from heating_controller import HeatingController
 from hyt_handler import HYTHandler
 from logging_controller import LoggingController
 from modem_handler import ModemHandler
+from modem_handler_dbus import ModemHandlerDBus
 from mqtt_controller import MQTTController
 from oled_controller import OLEDController
 from one_wire_handler import OneWireHandler
@@ -42,7 +43,10 @@ scheduler = BlockingScheduler()
 # This instantiates the single OncePrinter used across all modules
 prt.GLOBAL_ENTITY = OncePrinter()
 # This reads gps and signal strength data from the modem periodically
-modem = ModemHandler()
+if config.GPS_POLL_USE_DBUS:
+    modem = ModemHandlerDBus()
+else:
+    modem = ModemHandler()
 # This object will log average and raw data to a usb drive
 logg = LoggingController()
 # This instantiates a mqtt object and tries to connect if configured
