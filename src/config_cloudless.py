@@ -39,7 +39,7 @@ HEATER_MIN_TEMP = 22  # Minimum temperature to always keep, even below 50% ambie
 
 HEATER_PID_AUTOTUNER_ENABLE = False  # This runs a PID Autotuning sequence if enabled, disable this for normal operation
 HEATER_PID_AUTOTUNER_CALIBRATION_TEMPERATURE = 42  # This is the temperature at which te autotuning will be done, This temperature should be where the controller will be run at most of the time
-HEATER_PID_AUTOTUNER_RELAY_HYSTERESIS_DELTA = 3.5  # delta for the oscillation amplitude, lower values yield more aggressive less robust control parameters
+HEATER_PID_AUTOTUNER_RELAY_HYSTERESIS_DELTA = 5  # delta for the oscillation amplitude, lower values yield more aggressive less robust control parameters
 
 # Oled settings
 OLED_ENABLE = True
