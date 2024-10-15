@@ -29,6 +29,7 @@ try:
     MQTT_USE_TLS = os.environ['MQTT_USE_TLS'] in 'True'
     MQTT_USER = os.environ['MQTT_USER']
     MQTT_PASS = os.environ['MQTT_PASS']
+    MQTT_PUBLISH_EVERY_SECOND = os.environ['MQTT_PUBLISH_EVERY_SECOND'] in 'True'
 
     # GPS settings
     GPS_POLL_ENABLE = os.environ['GPS_POLL_ENABLE'] in 'True'
