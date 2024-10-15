@@ -1,0 +1,30 @@
+Screaming Circuits SMD component position file.
+Created by Centroid_ScreamingCircuits_smd.ulp 1.2.0.
+
+Centroid Data for pc board: "air_node.brd" as of: 15.10.2024 21:38
+Measurements are in inches. Comma delimited
+Only surface mount components included
+
+RefDes,Layer,LocationX,LocationY,Rotation
+C2,Top,-1.300,0.450,0
+C3,Top,-1.300,0.550,0
+C5,Top,0.100,0.800,0
+C6,Top,0.100,0.900,0
+C8,Top,0.100,1.400,0
+C9,Top,0.100,1.300,0
+C10,Top,1.050,2.575,90
+C11,Top,0.750,2.575,90
+C12,Top,0.150,2.575,90
+C13,Top,0.450,2.575,90
+J1,Top,0.100,1.038,270
+LED_DISCO,Top,2.850,2.013,90
+LED_HEAT,Top,-1.350,2.050,0
+LED_PUMP,Top,-1.350,1.250,180
+R1,Top,-1.265,1.250,270
+R2,Top,-1.275,2.050,90
+R3,Top,2.850,2.087,180
+R4,Top,3.200,2.700,0
+R5,Top,1.150,2.575,90
+R6,Top,0.850,2.575,90
+R7,Top,0.550,2.575,90
+R8,Top,0.250,2.575,90
