@@ -239,6 +239,9 @@ def exit_handler(signum: int, _frame: Optional[FrameType]) -> None:
     print("Cleanup completed")
     sys.exit(0)
 
+def get_next_full_minute():
+    return datetime.datetime.now().replace(second=0, microsecond=0) + datetime.timedelta(minutes=1)
+
 
 def main() -> None:
     # capture exit signals (from tini if running in docker container)
@@ -252,7 +255,7 @@ def main() -> None:
 
     # Scheduler setup and blocking start call
     scheduler.add_job(every_second, "interval", seconds=1)
-    scheduler.add_job(every_minute, "interval", minutes=1)
+    scheduler.add_job(every_minute, "interval", minutes=1, next_run_time=get_next_full_minute())
     scheduler.start()
 
 
