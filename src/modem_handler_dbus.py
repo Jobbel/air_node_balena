@@ -109,7 +109,9 @@ class ModemHandlerDBus:
                         ret["alt"] = nmea.alt
                         continue
                     if nmea.msgID == "RMC" and nmea.date != "" and nmea.time != "":
-                        ts = time.strptime(f"{nmea.date}:{nmea.time}", "%Y-%m-%d:%H:%M:%S")
+                        # nmea.time sometimes contains milliseconds, sometimes it does not
+                        time_str = nmea.time if "." in nmea.time else f"{nmea.time}.000000"
+                        ts = time.strptime(f"{nmea.date}:{time_str}", "%Y-%m-%d:%H:%M:%S.%f")
                         self.gps_timestamp = time.mktime(ts)
                         continue
             #print(f"lat:{ret['lat']}, lon:{ret['lon']}, alt:{ret['alt']}, time:{self.gps_timestamp}")
