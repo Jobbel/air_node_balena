@@ -29,7 +29,7 @@ class HeatingController:
         self.p.start(0)
         # Temperature PID
         self.pid_t = PID(20, 0.1, 0, setpoint=-100, sample_time=None)
-        self.pid_t.output_limits = (0, 100)
+        self.pid_t.output_limits = (0, int(np.clip(config.HEATER_MAX_POWER, 5, 100)))  # allow 5% to 100% power limits
         self.pid_t.tunings = config.HEATER_PID_TEMP_TUNING
 
         self.pid_autotuning_enabled = config.HEATER_PID_AUTOTUNER_ENABLE
