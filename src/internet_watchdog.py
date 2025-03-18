@@ -5,6 +5,7 @@ import RPi.GPIO
 import config
 from typing import Type
 from modem_handler import ModemHandler
+import subprocess
 
 class InternetWatchdog:
     def __init__(self, interval: int = 60 * 60, modem_handler_instance: Type[ModemHandler] = None):
@@ -33,12 +34,33 @@ class InternetWatchdog:
                 continue
             self.error_counter += 1
             print(f"No Internet connection / Modem found, restarting Modem. Counter:{self.error_counter}")
+            if self._reset_modem():
+                continue
             self._restart_modem()
 
     def _restart_modem(self) -> None:
         self.GPIO.output(config.INTERNET_WATCHDOG_MODEM_POWER_PIN, True)
         time.sleep(5)
         self.GPIO.output(config.INTERNET_WATCHDOG_MODEM_POWER_PIN, False)
+
+    def _reset_modem(self) -> bool:
+        try:
+            modem_number = self.modem_handler_instance.get_mm_number()
+            if modem_number == -1:
+                print("No Modem Found. cannot reset")
+                return False
+            print(f"Resetting modem {modem_number}")
+            result = subprocess.run(
+                ["mmcli", "-m", str(modem_number), "--reset"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            print("Modem reset successful:", result.stdout)
+            return True
+        except subprocess.CalledProcessError as e:
+            print("Error resetting modem:", e.stderr)
+            return False
 
     # Adopted from: https://stackoverflow.com/questions/3764291
     def _internet_connected(self, host: str = "1.1.1.1", port: int = 53, timeout: int = 10) -> bool:
